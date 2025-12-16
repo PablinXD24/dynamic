@@ -1,37 +1,65 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Teste Spotify Login</title>
+    <title>Teste Final Spotify</title>
 </head>
-<body style="background: black; color: white; display: flex; justify-content: center; align-items: center; height: 100vh;">
+<body style="background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
 
-    <button id="loginBtn" style="padding: 20px; font-size: 20px; cursor: pointer;">
-        TESTAR LOGIN SPOTIFY
+    <button id="loginBtn" style="background: #1DB954; color: black; padding: 15px 30px; border-radius: 50px; font-weight: bold; border: none; cursor: pointer; font-size: 16px;">
+        CONECTAR SPOTIFY (OFICIAL)
     </button>
 
+    <div id="status" style="margin-top: 20px; color: #b3b3b3;">Status: Aguardando clique...</div>
+
     <script>
-        // CONFIGURAÇÃO
+        // --- DADOS DO SEU APP ---
         const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d';
-        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; // Precisa bater exato com o dashboard
-
-        // URL OFICIAL DE AUTENTICAÇÃO (O erro estava aqui antes)
+        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/';
+        
+        // --- ENDPOINT OFICIAL (AQUI ESTAVA O ERRO ANTES) ---
+        // O link TEM que ser este aqui embaixo, senão dá o erro "unsupported_response_type"
         const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-        const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
+        
+        const SCOPES = [
+            'user-read-playback-state',
+            'user-modify-playback-state',
+            'user-read-currently-playing'
+        ];
 
+        // Lógica do Botão
         document.getElementById('loginBtn').addEventListener('click', () => {
-            // Monta o link
-            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+            const scopeString = SCOPES.join('%20');
             
-            console.log("Indo para:", url);
-            // Redireciona
+            // Montagem Manual da URL para garantir que nada saia errado
+            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopeString}&response_type=token&show_dialog=true`;
+            
+            console.log("Navegando para:", url);
+            document.getElementById('status').innerText = "Indo para o Spotify...";
+            
+            // Redirecionamento
             window.location.href = url;
         });
 
-        // Mostra o token na tela se voltar do login
-        if (window.location.hash) {
-            document.body.innerHTML = "<h1>SUCESSO! TOKEN RECEBIDO.</h1><p>" + window.location.hash + "</p>";
-        }
+        // Verificação do Retorno
+        window.onload = () => {
+            const hash = window.location.hash;
+            if (hash) {
+                // Se tiver erro na URL
+                if(hash.includes('error')) {
+                    document.body.innerHTML = `<h2 style="color:red">ERRO DO SPOTIFY:</h2><p>${hash}</p>`;
+                } 
+                // Se tiver token (access_token)
+                else if (hash.includes('access_token')) {
+                    document.body.innerHTML = `
+                        <h1 style="color:#1DB954">SUCESSO TOTAL! 🎉</h1>
+                        <p>Token recebido corretamente.</p>
+                        <p style="word-break: break-all; color: #555;">${hash}</p>
+                        <br>
+                        <h3>Agora podemos voltar com a Ilha Dinâmica!</h3>
+                    `;
+                }
+            }
+        };
     </script>
-
 </body>
 </html>
