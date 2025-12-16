@@ -3,69 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Island x Real Spotify</title>
+    <title>Dynamic Island x Spotify</title>
     <style>
-        /* --- ESTILOS VISUAIS (Mesmos da versão anterior) --- */
+        /* --- ESTILOS VISUAIS --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        
         body {
-            height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;
+            height: 100vh; 
+            width: 100vw;
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            padding-top: 20px;
+            /* Fundo escuro para destacar a ilha */
             background: radial-gradient(circle at 50% 100%, #191414, #000); 
-            overflow: hidden; color: white;
+            overflow: hidden; 
+            color: white;
         }
 
+        /* --- A ILHA DINÂMICA --- */
         .dynamic-island {
-            background-color: #000; border-radius: 50px;
-            width: 120px; height: 35px;
-            position: relative; z-index: 1000;
-            display: flex; align-items: center; justify-content: center;
-            transition: width 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), height 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), border-radius 0.5s ease;
-            cursor: pointer; box-shadow: 0 0 20px rgba(0,0,0,0.6); overflow: hidden;
+            background-color: #000; 
+            border-radius: 50px;
+            width: 120px; 
+            height: 35px;
+            position: relative; 
+            z-index: 1000;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            
+            /* Animação de Mola (Spring Physics) */
+            transition: 
+                width 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), 
+                height 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), 
+                border-radius 0.5s ease;
+            
+            cursor: pointer; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.6); 
+            overflow: hidden;
         }
 
         .dynamic-island:hover:not(.expanded) { transform: scale(1.02); }
 
+        /* Estado Expandido */
         .dynamic-island.expanded {
-            width: 380px; height: 110px; border-radius: 40px; cursor: default;
+            width: 380px; 
+            height: 110px; 
+            border-radius: 40px; 
+            cursor: default;
         }
 
+        /* Wrapper do Conteúdo */
         .content-wrapper {
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-            opacity: 0; visibility: hidden; transition: opacity 0.2s ease;
+            width: 100%; 
+            height: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            opacity: 0; 
+            visibility: hidden; 
+            transition: opacity 0.2s ease;
         }
 
+        /* Delay para o conteúdo aparecer só depois da ilha abrir */
         .dynamic-island.expanded .content-wrapper {
-            opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.2s;
+            opacity: 1; 
+            visibility: visible; 
+            transition: opacity 0.4s ease 0.2s;
         }
 
-        /* TELA LOGIN */
+        /* --- TELA 1: LOGIN --- */
         .login-btn {
-            background-color: #1DB954; color: #000; border: none; padding: 10px 24px;
-            border-radius: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            background-color: #1DB954; 
+            color: #000; 
+            border: none; 
+            padding: 10px 24px;
+            border-radius: 20px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            font-size: 14px;
         }
         .login-btn:hover { background-color: #1ed760; }
 
-        /* TELA PLAYER */
+        /* --- TELA 2: PLAYER --- */
         .player-view {
-            display: none; width: 100%; padding: 0 25px; align-items: center; justify-content: space-between;
+            display: none; 
+            width: 100%; 
+            padding: 0 25px; 
+            align-items: center; 
+            justify-content: space-between;
         }
 
         .album-art {
-            width: 60px; height: 60px; border-radius: 8px; background-color: #333; background-size: cover;
+            width: 60px; 
+            height: 60px; 
+            border-radius: 8px; 
+            background-color: #333; 
+            background-size: cover;
+            background-position: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            flex-shrink: 0;
         }
 
         .track-info {
-            flex: 1; margin-left: 15px; display: flex; flex-direction: column; overflow: hidden;
+            flex: 1; 
+            margin-left: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden;
+            margin-right: 10px;
         }
-        .track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .artist { color: #b3b3b3; font-size: 12px; margin-top: 4px; }
+        
+        .track-title { 
+            font-size: 14px; 
+            font-weight: 600; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            margin-bottom: 4px;
+        }
+        
+        .artist { 
+            color: #b3b3b3; 
+            font-size: 12px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+        }
 
-        .controls { display: flex; gap: 15px; align-items: center; }
-        .control-btn { background: none; border: none; cursor: pointer; color: white; display: flex; }
+        .controls { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            flex-shrink: 0;
+        }
+        
+        .control-btn { 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            color: white; 
+            display: flex; 
+            padding: 5px;
+        }
         .control-btn:hover { color: #1DB954; }
 
-        /* Estado "Sem Música" */
-        .no-music { font-size: 12px; color: #777; text-align: center; width: 100%; display: none; }
+        /* Mensagem de estado vazio */
+        .no-music { 
+            font-size: 12px; 
+            color: #777; 
+            text-align: center; 
+            width: 100%; 
+            display: none; 
+        }
     </style>
 </head>
 <body>
@@ -74,56 +168,55 @@
         <div class="content-wrapper">
             
             <div id="loginSection">
-                <button class="login-btn" onclick="authorizeSpotify()">
+                <button class="login-btn" onclick="authorizeSpotify(event)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-                    Login Real
+                    Conectar Spotify
                 </button>
             </div>
 
             <div id="playerSection" class="player-view">
                 <div class="album-art" id="albumArt"></div>
                 <div class="track-info">
-                    <span class="track-title" id="trackTitle">Nenhuma música</span>
-                    <span class="artist" id="artistName">Abra o Spotify</span>
+                    <span class="track-title" id="trackTitle">Carregando...</span>
+                    <span class="artist" id="artistName">Aguarde</span>
                 </div>
                 <div class="controls">
-                    <button class="control-btn" onclick="previousTrack()"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-                    <button class="control-btn" onclick="togglePlayback()" id="playPauseBtn">
+                    <button class="control-btn" onclick="previousTrack(event)"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                    <button class="control-btn" onclick="togglePlayback(event)" id="playPauseBtn">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </button>
-                    <button class="control-btn" onclick="nextTrack()"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                    <button class="control-btn" onclick="nextTrack(event)"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
                 </div>
             </div>
             
-            <div id="noMusicMsg" class="no-music">Toque algo no seu Spotify App</div>
+            <div id="noMusicMsg" class="no-music">Nenhuma música tocando</div>
 
         </div>
     </div>
 
     <script>
         // ==========================================
-        // CONFIGURAÇÃO OBRIGATÓRIA (PREENCHA AQUI)
+        // SUAS CREDENCIAIS
         // ==========================================
         const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d'; 
-        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; // Endereço exato do seu navegador
+        // Importante: removi o '#' do final da URL, pois o Spotify adiciona o dele
+        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; 
         // ==========================================
 
         const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
         const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
+        const API_BASE = 'https://api.spotify.com/v1/me/player';
         
         let accessToken = null;
 
-        // 1. Lógica de Autenticação
+        // 1. Função de Login
         function authorizeSpotify(e) {
             if(e) e.stopPropagation();
-            if (!CLIENT_ID || CLIENT_ID === 'SEU_CLIENT_ID_DO_SPOTIFY_AQUI') {
-                alert("ERRO: Você precisa colocar seu Client ID no código HTML!");
-                return;
-            }
-            window.location.href = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+            window.location.href = url;
         }
 
-        // 2. Verifica se voltamos do login com o token
+        // 2. Extrair Token da URL ao voltar do Login
         function getTokenFromUrl() {
             if (window.location.hash) {
                 const hash = window.location.hash.substring(1).split('&').reduce((initial, item) => {
@@ -133,53 +226,63 @@
                     }
                     return initial;
                 }, {});
-                window.location.hash = ''; // Limpa a URL
+                window.location.hash = ''; // Limpa a URL para ficar bonita
                 return hash.access_token;
             }
             return null;
         }
 
-        // 3. Inicialização
+        // 3. Inicialização ao carregar a página
         window.addEventListener('load', () => {
             accessToken = getTokenFromUrl();
             
             if (accessToken) {
-                // Se temos token, esconde login e mostra player
-                document.getElementById('island').classList.add('expanded'); // Abre a ilha
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('playerSection').style.display = 'flex';
+                // Se tem token, configura a UI
+                const island = document.getElementById('island');
+                const loginSection = document.getElementById('loginSection');
+                const playerSection = document.getElementById('playerSection');
+
+                island.classList.add('expanded'); // Mantém aberto
+                loginSection.style.display = 'none';
+                playerSection.style.display = 'flex';
                 
-                // Começa a buscar dados
+                // Busca música imediatamente e depois a cada 3s
                 fetchNowPlaying();
-                setInterval(fetchNowPlaying, 5000); // Atualiza a cada 5s
+                setInterval(fetchNowPlaying, 3000);
             }
         });
 
-        // 4. API: Busca música atual
+        // 4. Buscar o que está tocando agora
         async function fetchNowPlaying() {
             if (!accessToken) return;
 
             try {
-                const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+                const response = await fetch(`${API_BASE}/currently-playing`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
 
                 if (response.status === 204 || response.status > 400) {
-                    document.getElementById('trackTitle').innerText = "Parado";
-                    document.getElementById('artistName').innerText = "Abra o Spotify";
+                    showNoMusicState();
                     return;
                 }
 
                 const data = await response.json();
                 updateUI(data);
             } catch (e) {
-                console.error("Erro ao buscar música", e);
+                console.error("Erro API:", e);
             }
         }
 
-        // 5. Atualiza a UI da Ilha
+        // 5. Atualizar a Interface Visual
         function updateUI(data) {
-            if (!data || !data.item) return;
+            if (!data || !data.item) {
+                showNoMusicState();
+                return;
+            }
+
+            // Oculta mensagem de erro, mostra player
+            document.getElementById('noMusicMsg').style.display = 'none';
+            document.getElementById('playerSection').style.display = 'flex';
 
             const title = data.item.name;
             const artist = data.item.artists.map(a => a.name).join(', ');
@@ -190,52 +293,63 @@
             document.getElementById('artistName').innerText = artist;
             document.getElementById('albumArt').style.backgroundImage = `url('${albumImage}')`;
 
-            // Atualiza ícone Play/Pause
+            // Atualiza Botão Play/Pause
             const playBtn = document.getElementById('playPauseBtn');
             if (isPlaying) {
+                // Ícone de Pause
                 playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
             } else {
+                // Ícone de Play
                 playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             }
         }
 
-        // 6. Controles (Play/Pause/Next/Prev)
-        async function sendCommand(command) {
+        function showNoMusicState() {
+            document.getElementById('trackTitle').innerText = "Parado";
+            document.getElementById('artistName').innerText = "Abra o Spotify App";
+            document.getElementById('albumArt').style.backgroundImage = 'none';
+            document.getElementById('albumArt').style.backgroundColor = '#333';
+        }
+
+        // 6. Controles (Next/Prev/Play/Pause)
+        async function sendCommand(endpoint, method = 'POST') {
             if (!accessToken) return;
-            // Nota: Controle requer dispositivo ativo ou Premium em alguns casos
-            await fetch(`https://api.spotify.com/v1/me/player/${command}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            setTimeout(fetchNowPlaying, 500); // Atualiza UI logo após comando
+            try {
+                await fetch(`${API_BASE}/${endpoint}`, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                setTimeout(fetchNowPlaying, 500); // Atualiza UI logo após
+            } catch (e) { console.error(e); }
         }
 
-        function togglePlayback() {
-            // Lógica simplificada: Se está tocando, pausa. Se não, play.
-            // Para ser exato, precisaríamos saber o estado atual. Vamos tentar 'play' ou 'pause'.
-            // Como a API tem endpoints separados, o ideal é checar o estado antes. 
-            // Aqui vamos assumir next/prev. Para play/pause preciso saber o estado.
-            
-            // Verificação rápida do estado visual
-            const isPausedIcon = document.getElementById('playPauseBtn').innerHTML.includes('M8 5v14l11-7z');
-            const cmd = isPausedIcon ? 'play' : 'pause';
-            
-            fetch(`https://api.spotify.com/v1/me/player/${cmd}`, {
-                method: 'PUT', // Play/Pause usam PUT
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            setTimeout(fetchNowPlaying, 500);
+        function nextTrack(e) { 
+            e.stopPropagation(); 
+            sendCommand('next'); 
+        }
+        
+        function previousTrack(e) { 
+            e.stopPropagation(); 
+            sendCommand('previous'); 
         }
 
-        function nextTrack() { sendCommand('next'); }
-        function previousTrack() { sendCommand('previous'); }
+        function togglePlayback(e) {
+            e.stopPropagation();
+            // Verifica visualmente qual ícone está ativo para decidir
+            const isPausedIcon = document.getElementById('playPauseBtn').innerHTML.includes('M6 19h4V5H6v14zm8-14v14h4V5h-4z');
+            const cmd = isPausedIcon ? 'pause' : 'play';
+            sendCommand(cmd, 'PUT');
+        }
 
-        // Animação da Ilha
+        // Interação de Clique na Ilha (Expandir/Fechar)
         const island = document.getElementById('island');
         island.addEventListener('click', (e) => {
+            // Se o clique foi num botão, não faz nada
             if(e.target.closest('button')) return; 
+            
             island.classList.toggle('expanded');
         });
+
     </script>
 </body>
 </html>
