@@ -1,65 +1,187 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <title>Teste Final Spotify</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Island SDK</title>
+    <style>
+        /* --- ESTILOS (Mesma base visual) --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-decoration: none; }
+        
+        body {
+            height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;
+            background: radial-gradient(circle at 50% 100%, #191414, #000); 
+            overflow: hidden; color: white;
+        }
+
+        .dynamic-island {
+            background-color: #000; border-radius: 50px;
+            width: 120px; height: 35px;
+            position: relative; z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0);
+            cursor: pointer; box-shadow: 0 0 20px rgba(0,0,0,0.6);
+        }
+
+        .dynamic-island.expanded { width: 380px; height: 110px; border-radius: 40px; cursor: default; }
+
+        .content-wrapper {
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        
+        .dynamic-island.expanded .content-wrapper {
+            opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.2s;
+            pointer-events: auto;
+        }
+
+        /* Botão Login */
+        .login-btn {
+            background-color: #1DB954; color: #000; padding: 10px 24px;
+            border-radius: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; font-size: 14px;
+            z-index: 9999; pointer-events: auto; cursor: pointer;
+        }
+        .login-btn:hover { background-color: #1ed760; transform: scale(1.05); }
+
+        /* Player */
+        .player-view { display: none; width: 100%; padding: 0 25px; align-items: center; justify-content: space-between; }
+        .album-art { width: 60px; height: 60px; border-radius: 8px; background-color: #333; background-size: cover; background-position: center; }
+        .track-info { flex: 1; margin: 0 15px; overflow: hidden; }
+        .track-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .artist { color: #b3b3b3; font-size: 12px; }
+        .controls { display: flex; gap: 15px; }
+        .control-btn { background: none; border: none; cursor: pointer; color: white; padding: 5px; }
+        .control-btn:hover { color: #1DB954; }
+        
+        .status-msg { font-size: 12px; color: #777; margin-top: 5px; text-align: center; }
+    </style>
 </head>
-<body style="background: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
+<body>
 
-    <button id="loginBtn" style="background: #1DB954; color: black; padding: 15px 30px; border-radius: 50px; font-weight: bold; border: none; cursor: pointer; font-size: 16px;">
-        CONECTAR SPOTIFY (OFICIAL)
-    </button>
+    <div class="dynamic-island" id="island">
+        <div class="content-wrapper">
+            
+            <div id="loginSection">
+                <a id="btnLinkSpotify" href="#" class="login-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    Ativar SDK Player
+                </a>
+            </div>
 
-    <div id="status" style="margin-top: 20px; color: #b3b3b3;">Status: Aguardando clique...</div>
+            <div id="playerSection" class="player-view">
+                <div class="album-art" id="albumArt"></div>
+                <div class="track-info">
+                    <span class="track-title" id="trackTitle">Conectando...</span>
+                    <span class="artist" id="artistName">Aguarde o SDK</span>
+                </div>
+                <div class="controls">
+                    <button class="control-btn" id="btnPrev"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                    <button class="control-btn" id="btnToggle"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+                    <button class="control-btn" id="btnNext"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="status-msg" id="statusMsg"></div>
+
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
 
     <script>
-        // --- DADOS DO SEU APP ---
-        const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d';
+        // --- CONFIGURAÇÃO ---
+        const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d'; 
         const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/';
         
-        // --- ENDPOINT OFICIAL (AQUI ESTAVA O ERRO ANTES) ---
-        // O link TEM que ser este aqui embaixo, senão dá o erro "unsupported_response_type"
-        const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
+        // Escopos necessários para o SDK funcionar (streaming é obrigatório)
+        const SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
         
-        const SCOPES = [
-            'user-read-playback-state',
-            'user-modify-playback-state',
-            'user-read-currently-playing'
-        ];
+        let player = null;
+        let token = null;
 
-        // Lógica do Botão
-        document.getElementById('loginBtn').addEventListener('click', () => {
-            const scopeString = SCOPES.join('%20');
-            
-            // Montagem Manual da URL para garantir que nada saia errado
-            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scopeString}&response_type=token&show_dialog=true`;
-            
-            console.log("Navegando para:", url);
-            document.getElementById('status').innerText = "Indo para o Spotify...";
-            
-            // Redirecionamento
-            window.location.href = url;
-        });
-
-        // Verificação do Retorno
+        // 1. Ao carregar a página
         window.onload = () => {
+            // Tenta pegar o token da URL
             const hash = window.location.hash;
-            if (hash) {
-                // Se tiver erro na URL
-                if(hash.includes('error')) {
-                    document.body.innerHTML = `<h2 style="color:red">ERRO DO SPOTIFY:</h2><p>${hash}</p>`;
-                } 
-                // Se tiver token (access_token)
-                else if (hash.includes('access_token')) {
-                    document.body.innerHTML = `
-                        <h1 style="color:#1DB954">SUCESSO TOTAL! 🎉</h1>
-                        <p>Token recebido corretamente.</p>
-                        <p style="word-break: break-all; color: #555;">${hash}</p>
-                        <br>
-                        <h3>Agora podemos voltar com a Ilha Dinâmica!</h3>
-                    `;
-                }
+            if (hash && hash.includes('access_token')) {
+                const params = new URLSearchParams(hash.substring(1));
+                token = params.get('access_token');
+                window.location.hash = ''; // Limpa URL
+                
+                // Se tem token, inicia a interface do Player
+                document.getElementById('island').classList.add('expanded');
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('playerSection').style.display = 'flex';
+                document.getElementById('statusMsg').innerText = "Token recebido. Iniciando SDK...";
+
+            } else {
+                // Se NÃO tem token, configura o link de login
+                document.getElementById('island').classList.add('expanded');
+                const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+                document.getElementById('btnLinkSpotify').href = authUrl;
             }
+        }
+
+        // 2. Inicialização do SDK (Chamado automaticamente pelo script do Spotify)
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            if (!token) return; // Só inicia se tivermos logado
+
+            console.log("Inicializando Player...");
+            player = new Spotify.Player({
+                name: 'Minha Ilha Dinâmica',
+                getOAuthToken: cb => { cb(token); },
+                volume: 0.5
+            });
+
+            // Listeners de Erro
+            player.addListener('initialization_error', ({ message }) => { console.error(message); });
+            player.addListener('authentication_error', ({ message }) => { console.error(message); });
+            player.addListener('account_error', ({ message }) => { console.error(message); });
+
+            // Listener de Estado (Mudança de música, pause, play)
+            player.addListener('player_state_changed', state => {
+                if (!state) return;
+                updateUI(state);
+            });
+
+            // Listener de Pronto
+            player.addListener('ready', ({ device_id }) => {
+                console.log('Dispositivo pronto com ID', device_id);
+                document.getElementById('statusMsg').innerText = "Dispositivo 'Minha Ilha Dinâmica' está ativo no Spotify!";
+                document.getElementById('trackTitle').innerText = "Pronto";
+                document.getElementById('artistName').innerText = "Selecione este dispositivo no seu Spotify";
+            });
+
+            // Conectar
+            player.connect();
         };
+
+        // 3. Atualizar a Interface
+        function updateUI(state) {
+            const track = state.track_window.current_track;
+            
+            document.getElementById('trackTitle').innerText = track.name;
+            document.getElementById('artistName').innerText = track.artists[0].name;
+            document.getElementById('albumArt').style.backgroundImage = `url('${track.album.images[0].url}')`;
+
+            const playBtn = document.getElementById('btnToggle');
+            if (!state.paused) {
+                playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; // Pause
+            } else {
+                playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; // Play
+            }
+        }
+
+        // 4. Controles
+        document.getElementById('btnPrev').onclick = () => player.previousTrack();
+        document.getElementById('btnNext').onclick = () => player.nextTrack();
+        document.getElementById('btnToggle').onclick = () => player.togglePlay();
+
+        // 5. Clique da Ilha
+        document.getElementById('island').onclick = (e) => {
+            if(e.target.closest('a') || e.target.closest('button')) return;
+            document.getElementById('island').classList.toggle('expanded');
+        }
     </script>
 </body>
 </html>
