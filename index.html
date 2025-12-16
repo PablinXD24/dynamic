@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Island x Spotify</title>
     <style>
-        /* --- ESTILOS VISUAIS (Idênticos) --- */
+        /* --- ESTILOS VISUAIS (Mantidos) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         body {
@@ -19,6 +19,7 @@
             width: 120px; height: 35px;
             position: relative; z-index: 1000;
             display: flex; align-items: center; justify-content: center;
+            /* Animação */
             transition: width 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), height 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), border-radius 0.5s ease;
             cursor: pointer; box-shadow: 0 0 20px rgba(0,0,0,0.6); overflow: hidden;
         }
@@ -82,46 +83,50 @@
     </div>
 
     <script>
-        // --- DADOS DO USUÁRIO ---
+        // ===============================================
+        // CONFIGURAÇÕES (Não mude nada aqui se estiver no GitHub)
+        // ===============================================
         const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d'; 
-        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; 
+        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; // EXATAMENTE como no Dashboard
         
-        // --- AQUI ESTAVA O ERRO! ESTES SÃO OS LINKS CORRETOS ---
+        // --- LINKS CORRIGIDOS E OFICIAIS ---
         const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
         const API_BASE = 'https://api.spotify.com/v1';
-        // -------------------------------------------------------
+        // ===============================================
 
         const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
         let accessToken = null;
 
         window.addEventListener('load', () => {
-            console.log("Sistema Carregado. Links corrigidos.");
-            
+            console.log("App carregado. Links oficiais.");
+
             // 1. Configura Click do Botão
             const btnConnect = document.getElementById('btnConnect');
             if(btnConnect) {
                 btnConnect.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Impede fechar a ilha
+                    e.preventDefault();  // IMPEDE O # NA URL
+                    e.stopPropagation(); // IMPEDE FECHAR A ILHA
                     
+                    // Monta a URL de login
                     const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
                     
                     console.log("Redirecionando para:", url);
-                    window.location.href = url; // Manda para o Spotify
+                    window.location.href = url; // Força a ida para o Spotify
                 });
             }
 
-            // 2. Verifica token na volta
+            // 2. Verifica se voltamos com o token
             accessToken = getTokenFromUrl();
             if (accessToken) {
                 activatePlayer();
             } else {
-                // Abre a ilha para mostrar o botão de login
+                // Abre a ilha automaticamente para pedir login
                 document.getElementById('island').classList.add('expanded');
             }
 
-            // 3. Configura Controles
+            // 3. Configura Controles da Ilha
             document.getElementById('island').addEventListener('click', (e) => {
-                if(e.target.closest('button')) return;
+                if(e.target.closest('button')) return; // Ignora cliques nos botões
                 document.getElementById('island').classList.toggle('expanded');
             });
 
@@ -129,16 +134,6 @@
             document.getElementById('btnNext').addEventListener('click', (e) => { e.stopPropagation(); sendCommand('next'); });
             document.getElementById('btnToggle').addEventListener('click', togglePlayback);
         });
-
-        function activatePlayer() {
-            const island = document.getElementById('island');
-            island.classList.add('expanded');
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('playerSection').style.display = 'flex';
-            
-            fetchNowPlaying();
-            setInterval(fetchNowPlaying, 3000);
-        }
 
         function getTokenFromUrl() {
             if (window.location.hash) {
@@ -153,6 +148,16 @@
                 return hash.access_token;
             }
             return null;
+        }
+
+        function activatePlayer() {
+            const island = document.getElementById('island');
+            island.classList.add('expanded');
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('playerSection').style.display = 'flex';
+            
+            fetchNowPlaying();
+            setInterval(fetchNowPlaying, 3000);
         }
 
         async function fetchNowPlaying() {
