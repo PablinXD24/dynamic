@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Island x Spotify</title>
     <style>
-        /* --- ESTILOS VISUAIS --- */
+        /* --- ESTILOS VISUAIS (Mantidos) --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         body {
@@ -19,39 +19,29 @@
             width: 120px; height: 35px;
             position: relative; z-index: 1000;
             display: flex; align-items: center; justify-content: center;
-            /* Animação */
             transition: width 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), height 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), border-radius 0.5s ease;
             cursor: pointer; box-shadow: 0 0 20px rgba(0,0,0,0.6); overflow: hidden;
         }
-
-        /* Hover (apenas se não expandido) */
         .dynamic-island:hover:not(.expanded) { transform: scale(1.02); }
-
-        /* Estado Expandido */
         .dynamic-island.expanded { width: 380px; height: 110px; border-radius: 40px; cursor: default; }
 
-        /* Conteúdo */
         .content-wrapper {
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
             opacity: 0; visibility: hidden; transition: opacity 0.2s ease;
-            pointer-events: none; /* Evita cliques fantasmas quando fechado */
+            pointer-events: none;
         }
-        
         .dynamic-island.expanded .content-wrapper {
             opacity: 1; visibility: visible; transition: opacity 0.4s ease 0.2s;
-            pointer-events: auto; /* Habilita cliques quando aberto */
+            pointer-events: auto;
         }
 
-        /* TELA LOGIN */
         .login-btn {
             background-color: #1DB954; color: #000; border: none; padding: 10px 24px;
             border-radius: 20px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px;
-            z-index: 2000; /* Garante que está acima de tudo */
+            z-index: 2000;
         }
         .login-btn:hover { background-color: #1ed760; }
-        .login-btn:active { transform: scale(0.95); }
-
-        /* TELA PLAYER */
+        
         .player-view { display: none; width: 100%; padding: 0 25px; align-items: center; justify-content: space-between; }
         .album-art { width: 60px; height: 60px; border-radius: 8px; background-color: #333; background-size: cover; background-position: center; flex-shrink: 0; }
         .track-info { flex: 1; margin-left: 15px; display: flex; flex-direction: column; overflow: hidden; margin-right: 10px; }
@@ -67,7 +57,6 @@
 
     <div class="dynamic-island" id="island">
         <div class="content-wrapper">
-            
             <div id="loginSection">
                 <button id="btnConnect" class="login-btn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
@@ -83,78 +72,68 @@
                 </div>
                 <div class="controls">
                     <button class="control-btn" id="btnPrev"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-                    <button class="control-btn" id="btnToggle">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    </button>
+                    <button class="control-btn" id="btnToggle"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
                     <button class="control-btn" id="btnNext"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
                 </div>
             </div>
-            
-            <div id="noMusicMsg" class="no-music">Nenhuma música tocando</div>
+            <div id="noMusicMsg" class="no-music">Toque algo no Spotify App</div>
         </div>
     </div>
 
     <script>
-        // --- CREDENCIAIS ---
+        // --- DADOS REAIS DO USUÁRIO ---
         const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d'; 
         const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; 
         
-        // --- ENDPOINTS OFICIAIS (CORRIGIDOS) ---
+        // --- ENDPOINTS OFICIAIS CORRIGIDOS ---
         const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
         const API_BASE = 'https://api.spotify.com/v1';
         
         const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
-
         let accessToken = null;
 
-        // 1. Inicialização
         window.addEventListener('load', () => {
-            console.log("App carregado.");
-            accessToken = getTokenFromUrl();
+            console.log("App carregado. Versão corrigida.");
             
-            // Se já tem token, configura a tela
-            if (accessToken) {
-                console.log("Token encontrado:", accessToken);
-                const island = document.getElementById('island');
-                island.classList.add('expanded');
-                
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('playerSection').style.display = 'flex';
-                
-                fetchNowPlaying();
-                setInterval(fetchNowPlaying, 3000);
+            // 1. Configura Click do Botão
+            const btnConnect = document.getElementById('btnConnect');
+            if(btnConnect) {
+                btnConnect.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log("Iniciando redirecionamento...");
+                    const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+                    window.location.href = url;
+                });
             }
 
-            // Bind dos Eventos (Maneira mais segura que onclick no HTML)
-            document.getElementById('btnConnect').addEventListener('click', authorizeSpotify);
+            // 2. Verifica se voltou do login
+            accessToken = getTokenFromUrl();
+            if (accessToken) {
+                console.log("Token obtido com sucesso!");
+                activatePlayer();
+            }
+
+            // 3. Configura Controles
+            document.getElementById('island').addEventListener('click', (e) => {
+                if(e.target.closest('button')) return;
+                document.getElementById('island').classList.toggle('expanded');
+            });
+
             document.getElementById('btnPrev').addEventListener('click', (e) => { e.stopPropagation(); sendCommand('previous'); });
             document.getElementById('btnNext').addEventListener('click', (e) => { e.stopPropagation(); sendCommand('next'); });
             document.getElementById('btnToggle').addEventListener('click', togglePlayback);
-            
-            // Clique da Ilha
-            document.getElementById('island').addEventListener('click', (e) => {
-                // Se o clique foi num botão ou dentro do player, ignora o fecha/abre
-                if(e.target.closest('button')) return;
-                
-                document.getElementById('island').classList.toggle('expanded');
-            });
         });
 
-        // 2. Função de Login
-        function authorizeSpotify(e) {
-            if(e) {
-                e.stopPropagation();
-                e.preventDefault();
-            }
-            console.log("Botão de login clicado!");
-
-            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
+        function activatePlayer() {
+            const island = document.getElementById('island');
+            island.classList.add('expanded');
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('playerSection').style.display = 'flex';
             
-            console.log("Redirecionando para:", url);
-            window.location.href = url;
+            fetchNowPlaying();
+            setInterval(fetchNowPlaying, 3000);
         }
 
-        // 3. Pega token da URL
         function getTokenFromUrl() {
             if (window.location.hash) {
                 const hash = window.location.hash.substring(1).split('&').reduce((initial, item) => {
@@ -170,7 +149,6 @@
             return null;
         }
 
-        // 4. API: Busca música
         async function fetchNowPlaying() {
             if (!accessToken) return;
             try {
@@ -187,10 +165,8 @@
             } catch (e) { console.error("Erro API:", e); }
         }
 
-        // 5. Atualiza UI
         function updateUI(data) {
             if (!data || !data.item) { showNoMusicState(); return; }
-
             document.getElementById('noMusicMsg').style.display = 'none';
             document.getElementById('playerSection').style.display = 'flex';
 
@@ -199,9 +175,7 @@
             document.getElementById('albumArt').style.backgroundImage = `url('${data.item.album.images[0].url}')`;
 
             const playBtn = document.getElementById('btnToggle');
-            const isPlaying = data.is_playing;
-            
-            if (isPlaying) {
+            if (data.is_playing) {
                 playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
             } else {
                 playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
@@ -210,12 +184,11 @@
 
         function showNoMusicState() {
             document.getElementById('trackTitle').innerText = "Parado";
-            document.getElementById('artistName').innerText = "Abra o Spotify";
+            document.getElementById('artistName').innerText = "Abra o Spotify App";
             document.getElementById('albumArt').style.backgroundImage = 'none';
             document.getElementById('albumArt').style.backgroundColor = '#333';
         }
 
-        // 6. Comandos de Player
         async function sendCommand(endpoint, method = 'POST') {
             if (!accessToken) return;
             try {
