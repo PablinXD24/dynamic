@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Island x Spotify</title>
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body {
+            height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;
+            background: radial-gradient(circle at 50% 100%, #1DB954, #191414, #000); /* Cores Spotify */
+            overflow: hidden;
+        }
+
+        /* --- A ILHA --- */
+        .dynamic-island {
+            background-color: #000;
+            border-radius: 50px;
+            width: 120px; /* Largura inicial Idle */
+            height: 35px; /* Altura inicial Idle */
+            position: relative;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Animação Elástica (Bouncy) */
+            transition: width 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), height 0.5s cubic-bezier(0.5, 1.35, 0.4, 1.0), border-radius 0.5s ease;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Hover (apenas se fechada) */
+        .dynamic-island:hover:not(.expanded) { transform: scale(1.02); }
+
+        /* ESTADO EXPANDIDO */
+        .dynamic-island.expanded {
+            width: 380px;
+            height: 100px; /* Compacto, estilo player iOS */
+            border-radius: 40px;
+            cursor: default;
+        }
+
+        /* --- SENSOR DE CÂMERA (Visual) --- */
+        .camera-sensor {
+            position: absolute; right: 28px; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; background: #1a1a1a; border-radius: 50%;
+            pointer-events: none; opacity: 1; transition: opacity 0.2s;
+        }
+        .dynamic-island.expanded .camera-sensor { opacity: 0; }
+
+        /* --- CONTEÚDO INTERNO --- */
+        .content-wrapper {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s ease;
+        }
+
+        .dynamic-island.expanded .content-wrapper {
+            opacity: 1; visibility: visible;
+            transition: opacity 0.4s ease 0.2s; /* Delay para aparecer */
+        }
+
+        /* --- TELA 1: LOGIN SPOTIFY --- */
+        .login-view {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; justify-content: center;
+        }
+
+        .spotify-btn {
+            background-color: #1DB954; color: black; border: none;
+            padding: 10px 20px; border-radius: 20px;
+            font-weight: 700; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            transition: transform 0.1s;
+        }
+        .spotify-btn:active { transform: scale(0.95); }
+
+        /* --- TELA 2: PLAYER DE MÚSICA --- */
+        .player-view {
+            display: none; /* Escondido até logar */
+            width: 100%; padding: 0 20px;
+            align-items: center; justify-content: space-between;
+        }
+
+        .album-art {
+            width: 50px; height: 50px; border-radius: 10px;
+            background: url('https://i.scdn.co/image/ab67616d0000b2734121faee8df82c526cbab2be') center/cover;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .track-info {
+            flex: 1; margin-left: 15px; display: flex; flex-direction: column; justify-content: center;
+        }
+        .track-title { color: white; font-size: 14px; font-weight: 600; }
+        .artist { color: #b3b3b3; font-size: 12px; }
+
+        .controls { display: flex; align-items: center; gap: 15px; }
+        .control-btn { background: none; border: none; cursor: pointer; color: white; display: flex; }
+        .control-btn:hover { color: #1DB954; }
+        
+        /* Ícones SVG */
+        svg { fill: currentColor; }
+
+        /* Icone do Spotify (Logo) */
+        .spotify-logo { width: 20px; height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="dynamic-island" id="island">
+        <div class="camera-sensor"></div>
+
+        <div class="content-wrapper">
+            
+            <div class="login-view" id="loginView">
+                <button class="spotify-btn" onclick="loginSpotify(event)">
+                    <svg viewBox="0 0 24 24" class="spotify-logo"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    Conectar Spotify
+                </button>
+            </div>
+
+            <div class="player-view" id="playerView">
+                <div class="album-art"></div>
+                <div class="track-info">
+                    <span class="track-title">As It Was</span>
+                    <span class="artist">Harry Styles</span>
+                </div>
+                <div class="controls">
+                    <button class="control-btn"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                    <button class="control-btn" id="playBtn" onclick="togglePlay(event)">
+                        <svg width="30" height="30" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <button class="control-btn"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div style="position:absolute; bottom:50px; color:rgba(255,255,255,0.5); font-size:12px;">
+        Clique na ilha para expandir
+    </div>
+
+    <script>
+        const island = document.getElementById('island');
+        const loginView = document.getElementById('loginView');
+        const playerView = document.getElementById('playerView');
+        const playBtn = document.getElementById('playBtn');
+        
+        let isPlaying = false;
+        let isLoggedIn = false;
+
+        // 1. Abrir/Fechar a Ilha ao clicar no fundo preto
+        island.addEventListener('click', (e) => {
+            // Se clicar nos botões, não fecha a ilha
+            if(e.target.closest('button')) return;
+            
+            island.classList.toggle('expanded');
+            
+            // Se fechar, reseta para a tela de login se não estiver logado
+            if (!island.classList.contains('expanded') && !isLoggedIn) {
+                setTimeout(() => {
+                    loginView.style.display = 'flex';
+                    playerView.style.display = 'none';
+                }, 500);
+            }
+        });
+
+        // 2. Função de Login Simulado
+        function loginSpotify(event) {
+            event.stopPropagation(); // Evita fechar a ilha
+
+            // Abre o Spotify numa nova aba
+            window.open('https://open.spotify.com', '_blank');
+
+            // Simula o tempo de "autenticação" e troca a tela da ilha
+            loginView.innerHTML = '<span style="color:white; font-size:12px">Conectando...</span>';
+            
+            setTimeout(() => {
+                isLoggedIn = true;
+                loginView.style.display = 'none';
+                playerView.style.display = 'flex';
+            }, 1500); // Demora 1.5s para fingir que conectou
+        }
+
+        // 3. Controle Play/Pause
+        function togglePlay(event) {
+            event.stopPropagation();
+            isPlaying = !isPlaying;
+            
+            // Troca o ícone SVG dinamicamente
+            if (isPlaying) {
+                playBtn.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'; // Pause Icon
+            } else {
+                playBtn.innerHTML = '<svg width="30" height="30" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; // Play Icon
+            }
+        }
+    </script>
+</body>
+</html>
