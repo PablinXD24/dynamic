@@ -3,253 +3,549 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HyperOS Google Island</title>
+    <title>J&J OS - Smart Grid</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    
     <style>
         :root {
+            --jj-yellow: #FFC800;
+            --jj-brown: #834A29;
+            --jj-text: #1a1a1a;
             --island-bg: #000000;
-            --app-bg: #1c1c1e; /* Fundo escuro padrão Apple/Xiaomi */
-            --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1); 
-            --accent-blue: #0A84FF;
+            --spring-easing: cubic-bezier(0.19, 1, 0.22, 1); /* Ultra Smooth */
+            --content-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         
         body {
-            height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;
-            background: url('https://images.unsplash.com/photo-1620121692029-d088224ddc74?q=80&w=2832&auto=format&fit=crop') no-repeat center center fixed;
-            background-size: cover;
-            overflow: hidden;
+            height: 100vh; width: 100vw;
+            background-color: #f8f8f8;
+            /* Grid Técnico Sutil */
+            background-image: linear-gradient(#e5e5e5 1px, transparent 1px), linear-gradient(90deg, #e5e5e5 1px, transparent 1px);
+            background-size: 50px 50px;
+            overflow: hidden; 
+            display: flex; flex-direction: column;
         }
 
-        /* --- A ILHA FLUTUANTE --- */
+        /* --- ÁREA DE TRABALHO (GRID) --- */
+        .desktop-container {
+            width: 100%; height: 100%;
+            overflow-y: auto; overflow-x: hidden;
+            
+            display: flex; 
+            flex-wrap: wrap; /* O segredo do ajuste */
+            justify-content: center; /* Centraliza itens se sobrarem */
+            align-content: flex-start; /* Itens começam do topo */
+            gap: 20px;
+            padding: 20px;
+            padding-bottom: 80px; /* Espaço extra no final */
+        }
+        
+        /* Scroll Invisível */
+        .desktop-container::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* --- CLASSE DE INTERAÇÃO --- */
+        .clickable { transition: transform 0.1s ease; cursor: pointer; }
+        .clickable:active { transform: scale(0.96); }
+
+        /* --- ILHA GENÉRICA --- */
         .fluid-cloud {
-            background-color: var(--island-bg);
-            color: white;
-            border-radius: 35px; 
-            width: 126px; height: 36px; /* Tamanho inicial compacto */
-            position: relative; z-index: 1000;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            transition: width 0.6s var(--spring-easing), height 0.6s var(--spring-easing), border-radius 0.6s ease;
-            cursor: pointer; overflow: hidden;
-            display: flex; flex-direction: column; align-items: center;
+            /* Flexibilidade controlada */
+            flex: 0 0 auto; 
+            z-index: 10;
+            background-color: var(--island-bg); color: white; border-radius: 35px; 
+            height: 36px; width: 140px; position: relative; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            transition: all 0.6s var(--spring-easing);
+            display: flex; flex-direction: column; align-items: center; overflow: hidden;
         }
 
-        .fluid-cloud:hover:not(.expanded) { transform: scale(1.03); }
+        /* --- ILHA MESTRA (Sempre no Topo) --- */
+        .master-row {
+            width: 100%; display: flex; justify-content: center;
+            position: sticky; top: 10px; z-index: 1000;
+            margin-bottom: 10px; pointer-events: none; /* Permite clicar no fundo se não tocar na ilha */
+        }
+        
+        #island-main { pointer-events: all; } /* Reativa cliques na ilha */
 
-        /* ESTADO EXPANDIDO (TELA CHEIA DA ILHA) */
-        .fluid-cloud.expanded {
-            width: 380px; height: 650px; /* Tamanho de um celular pequeno */
-            border-radius: 45px; cursor: default;
+        #island-main.expanded {
+            width: 440px; height: 85vh; max-height: 800px;
+            border-radius: 42px;
+            background-color: #ffffff; color: var(--jj-text); cursor: default; 
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.2);
         }
 
-        /* --- INDICADOR (QUANDO FECHADO) --- */
-        .collapsed-view {
-            width: 100%; height: 36px; display: flex; align-items: center; justify-content: center;
-            position: absolute; top: 0; transition: opacity 0.2s;
+        /* --- ILHAS AUXILIARES (JANELAS) --- */
+        .island-aux {
+            /* Tamanho fixo mas responsivo */
+            width: 0; opacity: 0; pointer-events: none; transform: scale(0.9);
+            margin: 10px; /* Espaçamento entre elas no grid */
         }
-        .mini-camera {
-            width: 40px; height: 100%; background: transparent; /* Simula a câmera física */
+        
+        .island-aux.active {
+            width: 360px; height: 520px; /* Tamanho confortável */
+            opacity: 1; pointer-events: all; transform: scale(1);
+            background-color: #ffffff; color: var(--jj-text); cursor: default; 
+            border-radius: 38px; border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            /* Animação suave ao focar */
+            transition: transform 0.3s var(--spring-easing), box-shadow 0.3s ease, width 0.6s var(--spring-easing);
         }
 
-        /* --- CONTEÚDO EXPANDIDO --- */
+        /* Classe para trazer para frente */
+        .bring-to-front { z-index: 500 !important; box-shadow: 0 30px 80px rgba(0,0,0,0.25) !important; transform: scale(1.02) !important; }
+
+        /* Animação Shake (Singleton) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        .shake-focus { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: var(--jj-yellow) !important; }
+
+        /* --- CONTEÚDO INTERNO --- */
+        .collapsed-view { width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; position: absolute; top: 0; transition: opacity 0.2s; gap: 8px; }
+        .status-dot { width: 6px; height: 6px; background: var(--jj-yellow); border-radius: 50%; box-shadow: 0 0 10px var(--jj-yellow); }
+        
         .expanded-view {
             width: 100%; height: 100%; opacity: 0; pointer-events: none;
-            display: flex; flex-direction: column; 
-            transition: opacity 0.3s ease 0.1s;
-            overflow: hidden;
+            display: flex; flex-direction: column; padding: 25px;
+            transition: opacity 0.4s ease 0.2s;
         }
+        .fluid-cloud.expanded .expanded-view, .island-aux.active .expanded-view { opacity: 1; pointer-events: all; }
+        .fluid-cloud.expanded .collapsed-view, .island-aux.active .collapsed-view { opacity: 0; pointer-events: none; }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #f4f4f4; }
+        .header-title { font-weight: 800; color: var(--jj-brown); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .close-btn { width: 32px; height: 32px; border-radius: 50%; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #888; transition: 0.2s; }
+        .close-btn:hover { background: #ffeaea; color: #ff3b30; }
+
+        .content-scroll { flex: 1; overflow-y: auto; padding-right: 4px; scrollbar-width: none; animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* DOCK */
+        .dock-container {
+            margin-top: 15px; background: #fafafa; border-radius: 30px; padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;
+        }
+        .dock-item { display: flex; flex-direction: column; align-items: center; width: 60px; position: relative; }
+        .dock-icon-box {
+            width: 48px; height: 48px; border-radius: 18px; background: #fff; border: 1px solid #eee;
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+            margin-bottom: 5px; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: var(--jj-brown); 
+        }
+        .dock-item:hover .dock-icon-box { transform: translateY(-4px); border-color: var(--jj-yellow); }
+        .dock-item.active .dock-icon-box { background: var(--jj-yellow); color: #000; border-color: var(--jj-yellow); transform: translateY(-6px); box-shadow: 0 8px 20px rgba(255, 200, 0, 0.3); }
+        .dock-label { font-size: 8px; font-weight: 700; opacity: 0.6; text-transform: uppercase; }
+        .dbl-click-hint { position: absolute; top: -30px; background: #1a1a1a; color: white; padding: 4px 8px; border-radius: 8px; font-size: 8px; font-weight: 600; opacity: 0; transform: translateY(10px); transition: 0.2s; pointer-events: none; white-space: nowrap; }
+        .dock-item:hover .dbl-click-hint { opacity: 1; transform: translateY(0); }
+
+        /* UI ELEMENTS */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .jj-card {
+            background: #fff; padding: 10px; border-radius: 18px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #f0f0f0; transition: all 0.2s;
+        }
+        .jj-card:hover { transform: translateY(-3px); border-color: var(--jj-yellow); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .jj-card img { width: 100%; height: 100px; border-radius: 12px; object-fit: cover; background: #f8f8f8; }
         
-        .fluid-cloud.expanded .expanded-view { opacity: 1; pointer-events: all; }
-        .fluid-cloud.expanded .collapsed-view { opacity: 0; pointer-events: none; }
+        .jj-input { width: 100%; background: #f8f8f8; border: 1px solid transparent; padding: 14px; border-radius: 16px; margin-bottom: 10px; font-size: 0.85rem; outline: none; transition: 0.3s; color: #333; }
+        .jj-input:focus { background: white; border-color: var(--jj-yellow); box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.1); }
+        .jj-btn { width: 100%; background: var(--jj-yellow); color: #000; font-weight: 800; padding: 16px; border-radius: 18px; border: none; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(255, 200, 0, 0.2); margin-top: 10px; }
 
-        /* CONTAINER DOS APPS */
-        #screen-container { 
-            flex: 1; position: relative; width: 100%; overflow: hidden; 
-            border-bottom-left-radius: 45px; border-bottom-right-radius: 45px;
-            background: #fff; /* Fundo branco para o navegador */
-        }
-
-        .app-screen {
-            position: absolute; top:0; left:0; width: 100%; height: 100%;
-            background: #fff;
-            display: flex; flex-direction: column;
-            transform: translateX(0); /* Padrão visível */
-        }
-
-        /* --- BARRA DE NAVEGAÇÃO ESTILO CHROME --- */
-        .browser-header {
-            height: 54px; background: #f2f2f7; 
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 12px; border-bottom: 1px solid #d1d1d6;
-            margin-top: 25px; /* Espaço para a ilha física */
-        }
-        
-        .nav-controls { display: flex; gap: 15px; }
-        .nav-btn { font-size: 18px; color: #007AFF; cursor: pointer; padding: 4px; }
-        .nav-btn:active { opacity: 0.5; }
-
-        .url-box {
-            flex: 1; margin: 0 10px; height: 36px;
-            background: #e3e3e8; border-radius: 10px;
-            display: flex; align-items: center; padding: 0 10px;
-        }
-        
-        .google-icon { font-size: 14px; margin-right: 6px; }
-        
-        .url-input {
-            flex: 1; background: transparent; border: none; outline: none;
-            font-size: 14px; color: #000; text-align: center;
-        }
-        .url-input:focus { text-align: left; }
-
-        /* IFRAME FULLSCREEN */
-        iframe.web-view {
-            flex: 1; width: 100%; border: none; background: #fff;
-            opacity: 1; transition: opacity 0.3s;
-        }
-
-        /* DOCK INFERIOR (MENU) */
-        .dock {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            height: 60px; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
-            border-radius: 35px; display: flex; align-items: center; padding: 0 20px; gap: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 2000;
-        }
-        
-        .dock-icon {
-            font-size: 24px; color: #fff; opacity: 0.6; cursor: pointer;
-            transition: 0.2s; width: 40px; height: 40px; 
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 12px;
-        }
-        .dock-icon:hover { opacity: 1; background: rgba(255,255,255,0.1); transform: scale(1.1); }
-        .dock-icon.active { opacity: 1; background: rgba(255,255,255,0.2); color: #0A84FF; }
-
-        /* Loader */
-        .loader {
-            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
-            width: 30px; height: 30px; border: 3px solid #ddd; border-top-color: #0A84FF;
-            border-radius: 50%; animation: spin 1s infinite linear;
-            display: none; z-index: 5;
-        }
-        @keyframes spin { 100% { transform: translateX(-50%) rotate(360deg); } }
+        #island-main.scanner-mode { width: 360px; height: 360px; background: #000; color: white; border: none; }
+        #reader { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; }
 
     </style>
 </head>
 <body>
 
-    <div class="fluid-cloud" id="island">
+    <div class="desktop-container" id="grid-stage">
         
-        <div class="collapsed-view" onclick="toggleIsland()">
-            </div>
-
-        <div class="expanded-view">
-            
-            <div id="screen-container">
-                <div class="app-screen">
-                    <div class="browser-header">
-                        <div class="nav-controls">
-                            <span class="nav-btn" onclick="goBack()">❮</span>
-                            <span class="nav-btn" onclick="goForward()">❯</span>
+        <div class="master-row">
+            <div class="fluid-cloud clickable" id="island-main">
+                <div class="collapsed-view" onclick="toggleMain()">
+                    <div class="status-dot"></div>
+                    <span id="clock-display" style="font-size: 11px; font-weight: 700; letter-spacing:0.5px">--:--</span>
+                </div>
+                <div class="expanded-view">
+                    <div class="header-bar">
+                        <span class="header-title" id="main-title">Sistema J&J</span>
+                        <div class="close-btn clickable" onclick="toggleMain()">✕</div>
+                    </div>
+                    <div class="content-scroll" id="main-content"></div>
+                    <div id="scanner-container" style="display:none; height:100%; flex-direction:column;">
+                        <div id="reader"></div>
+                        <button class="jj-btn clickable" style="background:white; margin-top:20px" onclick="stopScanner()">Cancelar</button>
+                    </div>
+                    <div class="dock-container" id="main-dock">
+                        <div class="dock-item clickable active" onclick="handleDockClick('list')" id="dock-list">
+                            <div class="dbl-click-hint">2x Nova Janela</div>
+                            <div class="dock-icon-box"><i class="fas fa-th-large"></i></div>
+                            <span class="dock-label">Acervo</span>
                         </div>
-                        <div class="url-box">
-                            <span class="google-icon">🔍</span>
-                            <input type="text" class="url-input" value="Google" id="urlInput" onkeypress="handleEnter(event)" onfocus="this.select()">
+                        <div class="dock-item clickable" onclick="handleDockClick('add')" id="dock-add">
+                            <div class="dbl-click-hint">2x Nova Janela</div>
+                            <div class="dock-icon-box"><i class="fas fa-plus"></i></div>
+                            <span class="dock-label">Novo</span>
                         </div>
-                        <div class="nav-controls">
-                            <span class="nav-btn" onclick="reload()">↻</span>
+                        <div class="dock-item clickable" onclick="handleDockClick('dash')" id="dock-dash">
+                            <div class="dbl-click-hint">2x Nova Janela</div>
+                            <div class="dock-icon-box"><i class="fas fa-chart-pie"></i></div>
+                            <span class="dock-label">Dash</span>
+                        </div>
+                        <div class="dock-item clickable" onclick="startScanner()">
+                            <div class="dock-icon-box" style="background:#1a1a1a; color:white"><i class="fas fa-qrcode"></i></div>
+                            <span class="dock-label">Scan</span>
                         </div>
                     </div>
-
-                    <div class="loader" id="loader"></div>
-
-                    <iframe 
-                        id="browserFrame" 
-                        class="web-view"
-                        src="https://www.google.com/webhp?igu=1"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
-                    ></iframe>
                 </div>
             </div>
-
-            <div class="dock">
-                <div class="dock-icon active" title="Navegador">🌐</div>
-                <div class="dock-icon" title="Fechar Ilha" onclick="toggleIsland()">✕</div>
-            </div>
+        </div>
 
         </div>
-    </div>
 
     <script>
-        const island = document.getElementById('island');
-        const frame = document.getElementById('browserFrame');
-        const input = document.getElementById('urlInput');
-        const loader = document.getElementById('loader');
+        // RELÓGIO
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
 
-        // URL Mágica do Google que permite Iframe
-        const GOOGLE_BASE = "https://www.google.com/webhp?igu=1";
-        const GOOGLE_SEARCH = "https://www.google.com/search?igu=1&q=";
+        // FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTYFc2tphilGadT8LfSV_mTI0GRmebMdI",
+            authDomain: "jj26-d5c78.firebaseapp.com",
+            databaseURL: "https://jj26-d5c78-default-rtdb.firebaseio.com",
+            projectId: "jj26-d5c78",
+            storageBucket: "jj26-d5c78.firebasestorage.app",
+            messagingSenderId: "923255408755",
+            appId: "1:923255408755:web:b9197990d671452d5dc206"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-        function toggleIsland() {
-            island.classList.toggle('expanded');
-        }
+        // UI LOGIC
+        const stage = document.getElementById('grid-stage');
+        const mainIsland = document.getElementById('island-main');
+        let html5QrCode = null;
+        let clickTimer = null;
+        let maxZIndex = 100; // Contador de profundidade
 
-        // Lógica de Navegação
-        function handleEnter(e) {
-            if (e.key === 'Enter') {
-                let val = input.value.trim();
-                if (!val) return;
-                
-                startLoading();
+        // Iniciar aberto
+        window.onload = () => { setTimeout(() => toggleMain(), 300); };
 
-                // Verifica se é URL ou Pesquisa
-                if (val.includes('.') && !val.includes(' ')) {
-                    if (!val.startsWith('http')) val = 'https://' + val;
-                    frame.src = val;
-                } else {
-                    // Pesquisa Google com parâmetro de desbloqueio
-                    frame.src = GOOGLE_SEARCH + encodeURIComponent(val);
-                }
-                
-                input.blur();
+        function toggleMain() {
+            mainIsland.classList.toggle('expanded');
+            if(mainIsland.classList.contains('expanded')) {
+                mainIsland.classList.remove('clickable');
+                setMainView('list');
+            } else {
+                mainIsland.classList.add('clickable');
+                stopScanner();
             }
         }
 
-        function reload() {
-            startLoading();
-            // Truque para recarregar iframe sem cache
-            frame.src = frame.src;
+        // CLIQUE INTELIGENTE (1 vs 2)
+        function handleDockClick(view) {
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+                spawnIsland(view);
+            } else {
+                clickTimer = setTimeout(() => {
+                    setMainView(view);
+                    clickTimer = null;
+                }, 250);
+            }
         }
 
-        function goBack() {
-            // Nota: Histórico de iframe tem limitações de segurança
-            try { frame.contentWindow.history.back(); } catch(e) { console.log('Bloqueio de segurança ao voltar'); }
-        }
-        
-        function goForward() {
-            try { frame.contentWindow.history.forward(); } catch(e) { console.log('Bloqueio de segurança ao avançar'); }
-        }
+        // --- SISTEMA DE JANELAS (SINGLETON GRID) ---
+        function spawnIsland(viewType, data = null) {
+            // ID Único Baseado no Tipo (Singleton)
+            let uniqueId = 'win-' + viewType;
+            if(viewType === 'edit' && data) uniqueId += '-' + data.id;
 
-        // Simulação de Loading
-        function startLoading() {
-            loader.style.display = 'block';
-            frame.style.opacity = '0.5';
+            // 1. Verifica se já existe
+            const existing = document.getElementById(uniqueId);
+            if(existing) {
+                bringToFront(existing);
+                existing.classList.remove('shake-focus');
+                void existing.offsetWidth; // Force Reflow
+                existing.classList.add('shake-focus');
+                return;
+            }
+
+            // 2. Cria Nova
+            const html = `
+                <div class="fluid-cloud island-aux clickable" id="${uniqueId}" onclick="bringToFront(this)">
+                    <div class="collapsed-view" onclick="toggleAux('${uniqueId}')">
+                        <div class="status-dot"></div>
+                        <span>Janela J&J</span>
+                    </div>
+                    <div class="expanded-view">
+                        <div class="header-bar">
+                            <span class="header-title title-slot">Carregando...</span>
+                            <div class="close-btn clickable" onclick="closeIsland('${uniqueId}')">✕</div>
+                        </div>
+                        <div class="content-scroll content-slot"></div>
+                    </div>
+                </div>
+            `;
             
-            // O Iframe não avisa quando termina de carregar sites externos (segurança)
-            // Então usamos um timer falso para UX
+            stage.insertAdjacentHTML('beforeend', html);
+            
             setTimeout(() => {
-                loader.style.display = 'none';
-                frame.style.opacity = '1';
-            }, 1500);
+                const el = document.getElementById(uniqueId);
+                el.classList.add('active'); 
+                el.classList.remove('clickable');
+                bringToFront(el); // Foca na nova janela
+                
+                const container = el.querySelector('.content-slot');
+                const title = el.querySelector('.title-slot');
+                renderContent(viewType, container, title, data);
+            }, 50);
         }
 
-        // Ajustar visual quando a Ilha abre
-        island.addEventListener('transitionend', () => {
-            if (island.classList.contains('expanded')) {
-                // Foco opcional ou lógica extra
-            }
-        });
+        // Traz janela para frente no clique
+        function bringToFront(el) {
+            maxZIndex++;
+            el.style.zIndex = maxZIndex;
+            // Remove destaque das outras e adiciona nesta
+            document.querySelectorAll('.island-aux').forEach(i => i.classList.remove('bring-to-front'));
+            el.classList.add('bring-to-front');
+        }
 
+        function closeIsland(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('active');
+            setTimeout(() => el.remove(), 500);
+        }
+
+        function toggleAux(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('active');
+            el.classList.toggle('clickable');
+            if(el.classList.contains('active')) bringToFront(el);
+        }
+
+        // --- RENDERIZADOR ---
+        function setMainView(view) {
+            if(mainIsland.classList.contains('scanner-mode')) stopScanner();
+            document.querySelectorAll('.dock-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('dock-'+view).classList.add('active');
+            
+            const container = document.getElementById('main-content');
+            container.style.animation = 'none';
+            container.offsetHeight; 
+            container.style.animation = 'fadeIn 0.4s var(--content-easing) forwards';
+            
+            renderContent(view, container, document.getElementById('main-title'));
+        }
+
+        function renderContent(view, container, titleElement, extraData = null) {
+            container.innerHTML = '<div style="text-align:center; padding:50px; opacity:0.5"><i class="fas fa-circle-notch fa-spin"></i></div>';
+
+            // ACERVO
+            if (view === 'list') {
+                titleElement.innerText = "Acervo";
+                database.ref('produtos').on('value', snap => {
+                    const data = snap.val();
+                    container.innerHTML = '';
+                    if (data) {
+                        const grid = document.createElement('div');
+                        grid.className = 'products-grid';
+                        Object.values(data).forEach(p => {
+                            let img = getImg(p);
+                            const card = document.createElement('div');
+                            card.className = 'jj-card clickable';
+                            card.onclick = () => spawnIsland('edit', p);
+                            card.innerHTML = `
+                                <img src="${img}">
+                                <div>
+                                    <div style="font-weight:700; font-size:0.8rem; color:var(--jj-brown)">${p.name}</div>
+                                    <div style="font-weight:600; font-size:0.75rem; opacity:0.7">R$ ${p.price}</div>
+                                </div>`;
+                            grid.appendChild(card);
+                        });
+                        container.appendChild(grid);
+                    } else container.innerHTML = '<p style="text-align:center; margin-top:50px; opacity:0.5">Vazio.</p>';
+                });
+
+            // DASH
+            } else if (view === 'dash') {
+                titleElement.innerText = "Resumo";
+                database.ref('pedidos').on('value', snap => {
+                    const data = snap.val();
+                    let total = 0, count = 0;
+                    let listHtml = "";
+                    if(data) {
+                        Object.values(data).reverse().forEach(p => {
+                            total += parseFloat(p.total); count++;
+                            listHtml += `
+                                <div class="jj-card" style="display:block; cursor:default; gap:5px; border-left: 3px solid var(--jj-yellow)">
+                                    <div style="display:flex; justify-content:space-between; font-weight:700">
+                                        <span>${p.cliente}</span>
+                                        <span style="color:var(--jj-brown)">R$ ${p.total}</span>
+                                    </div>
+                                    <div style="font-size:0.7rem; opacity:0.6">${p.itens_resumo}</div>
+                                </div>`;
+                        });
+                    }
+                    container.innerHTML = `
+                        <div style="display:flex; gap:12px; margin-bottom:20px">
+                            <div style="flex:1; background:#f9f9f9; padding:15px; border-radius:18px; text-align:center; border:1px solid #eee">
+                                <div style="font-size:0.6rem; font-weight:700; color:#aaa">VENDAS</div>
+                                <div style="font-size:1.5rem; font-weight:800; color:var(--jj-text)">${count}</div>
+                            </div>
+                            <div style="flex:1; background:#fffbf0; padding:15px; border-radius:18px; text-align:center; border:1px solid #ffeeba">
+                                <div style="font-size:0.6rem; font-weight:700; color:#d4a000">TOTAL</div>
+                                <div style="font-size:1.1rem; font-weight:800; color:var(--jj-brown)">R$ ${total.toFixed(2)}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px">${listHtml || '<p style="text-align:center">Sem dados.</p>'}</div>
+                    `;
+                });
+
+            // NOVO
+            } else if (view === 'add') {
+                titleElement.innerText = "Novo Item";
+                container.innerHTML = `
+                    <div style="padding:5px;">
+                        <input type="text" class="jj-input inp-cat" placeholder="Categoria">
+                        <input type="text" class="jj-input inp-name" placeholder="Nome da Obra">
+                        <div style="display:flex; gap:10px">
+                            <input type="text" class="jj-input inp-price" placeholder="Preço" style="flex:1">
+                            <input type="text" class="jj-input inp-colors" placeholder="Cores" style="flex:1">
+                        </div>
+                        <textarea class="jj-input inp-desc" rows="4" placeholder="Descrição..."></textarea>
+                        <button class="jj-btn clickable" onclick="saveNewItem(this)">SALVAR</button>
+                    </div>
+                `;
+
+            // EDITOR
+            } else if (view === 'edit') {
+                const p = extraData;
+                titleElement.innerText = "Editar";
+                const colors = p.colors ? p.colors.split(',').map(c => c.trim()) : [];
+                let variantHtml = colors.map(c => {
+                    const v = (p.variants && p.variants[c]) ? p.variants[c] : {};
+                    return `
+                        <div style="background:#f9f9f9; padding:12px; border-radius:18px; margin-bottom:10px; border:1px solid #eee">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                                <span style="font-size:0.7rem; font-weight:800; color:#aaa">${c.toUpperCase()}</span>
+                                <input type="text" class="jj-input stock-inp" data-color="${c}" value="${v.stock || ''}" placeholder="Qtd" style="width:50px; margin:0; padding:6px; text-align:center">
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <img src="${v.img || 'https://via.placeholder.com/50'}" style="width:45px; height:45px; border-radius:10px; object-fit:cover; background:white; border:1px solid #eee">
+                                <label class="clickable" style="flex:1; background:white; padding:8px; border-radius:12px; text-align:center; font-size:0.7rem; cursor:pointer; border:1px solid #e0e0e0; font-weight:600; color:#555">
+                                    Alterar Foto
+                                    <input type="file" onchange="handleImgUpload('${p.id}', '${c}', this)" style="display:none">
+                                </label>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                container.innerHTML = `
+                    <div style="background:white; padding:15px; border-radius:20px; text-align:center; margin-bottom:15px; border:1px solid #eee;">
+                        <svg class="barcode-target" style="width:100%; height:40px"></svg>
+                        <p style="font-size:0.6rem; opacity:0.4; letter-spacing:1px; margin-top:4px">${p.id}</p>
+                    </div>
+                    <input type="hidden" class="edit-id" value="${p.id}">
+                    <div style="margin-bottom:15px">
+                        <input type="text" class="jj-input edit-name" value="${p.name}" style="font-weight:700">
+                        <input type="text" class="jj-input edit-price" value="${p.price}">
+                    </div>
+                    ${variantHtml}
+                    <button class="jj-btn clickable" onclick="updateFullItem(this)">SALVAR ALTERAÇÕES</button>
+                    <button class="jj-btn clickable" style="background:#fff; color:#ff4d4d; border:2px solid #ffeded; margin-top:10px; box-shadow:none" onclick="deleteItem('${p.id}', this)">EXCLUIR</button>
+                `;
+                setTimeout(() => { try { JsBarcode(container.querySelector('.barcode-target'), p.id, { format: "CODE128", width: 1.5, height: 40, displayValue: false }); } catch(e) {} }, 100);
+            }
+        }
+
+        // --- CRUD ---
+        function saveNewItem(btn) {
+            const c = btn.closest('.expanded-view').querySelector('.content-scroll');
+            const name = c.querySelector('.inp-name').value;
+            if(!name) return alert("Nome obrigatório");
+            const ref = database.ref('produtos').push();
+            ref.set({
+                id: ref.key, barcode: ref.key,
+                category: c.querySelector('.inp-cat').value,
+                name: name,
+                price: c.querySelector('.inp-price').value,
+                colors: c.querySelector('.inp-colors').value,
+                desc: c.querySelector('.inp-desc').value,
+                variants: {}
+            }).then(() => {
+                btn.innerText = "SUCESSO!"; btn.style.background = "#4cd964";
+                setTimeout(() => { if(c.closest('#island-main')) setMainView('list'); else closeIsland(c.closest('.island-aux').id); }, 800);
+            });
+        }
+
+        function updateFullItem(btn) {
+            const c = btn.closest('.content-scroll');
+            const id = c.querySelector('.edit-id').value;
+            const updates = { name: c.querySelector('.edit-name').value, price: c.querySelector('.edit-price').value };
+            c.querySelectorAll('.stock-inp').forEach(inp => { database.ref(`produtos/${id}/variants/${inp.dataset.color}/stock`).set(inp.value); });
+            database.ref('produtos/'+id).update(updates).then(() => { btn.innerText = "SALVO!"; setTimeout(() => btn.innerText = "SALVAR ALTERAÇÕES", 1000); });
+        }
+
+        function handleImgUpload(id, color, input) {
+            if (input.files[0]) {
+                const r = new FileReader();
+                r.onload = (e) => database.ref(`produtos/${id}/variants/${color}/img`).set(e.target.result);
+                r.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function deleteItem(id, btn) {
+            if(confirm("Apagar?")) database.ref('produtos/'+id).remove().then(() => {
+                const island = btn.closest('.island-aux');
+                if(island) closeIsland(island.id);
+                else setMainView('list');
+            });
+        }
+
+        function getImg(p) {
+            let c = p.colors ? p.colors.split(',')[0].trim() : "";
+            let i = (p.variants && p.variants[c]) ? p.variants[c].img : "";
+            return (i && i.length > 5) ? i : "https://via.placeholder.com/150";
+        }
+
+        // --- SCANNER ---
+        function startScanner() {
+            mainIsland.classList.add('expanded'); mainIsland.classList.add('scanner-mode');
+            document.getElementById('main-content').style.display = 'none'; document.getElementById('main-dock').style.display = 'none';
+            document.getElementById('scanner-container').style.display = 'flex'; document.querySelector('.header-bar').style.display = 'none';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+                stopScanner();
+                database.ref('produtos').once('value', snap => {
+                    const data = snap.val();
+                    let f = null;
+                    if(data) Object.values(data).forEach(p => { if(p.id == txt || p.barcode == txt) f = p; });
+                    if(f) spawnIsland('edit', f); else alert("Não encontrado.");
+                });
+            });
+        }
+
+        function stopScanner() {
+            if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear()).catch(()=>{});
+            mainIsland.classList.remove('scanner-mode');
+            document.getElementById('main-content').style.display = 'block'; document.getElementById('main-dock').style.display = 'flex';
+            document.getElementById('scanner-container').style.display = 'none'; document.querySelector('.header-bar').style.display = 'flex';
+        }
     </script>
 </body>
 </html>
