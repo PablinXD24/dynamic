@@ -3,339 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HyperOS Fluid Cloud x Spotify</title>
+    <title>HyperOS 3 x Web Player</title>
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <style>
         :root {
             --spotify-green: #1ED760;
-            --island-bg: #0a0a0a;
+            --island-bg: #0f0f0f;
             --text-main: #ffffff;
-            --text-sub: #a0a0a0;
-            /* Curva de animação estilo "Mola" do HyperOS */
-            --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1); 
+            --spring-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'MiSans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+
         body {
-            height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding-top: 15px;
-            background: radial-gradient(circle at 50% 100%, #1a1a1a, #000); 
-            overflow: hidden; color: white;
+            height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;
+            background: #000; color: white; overflow: hidden;
         }
 
-        /* --- A ILHA (HYPEROS FLUID CLOUD STYLE) --- */
+        /* --- A ILHA (HYPEROS STYLE) --- */
+        .island-container {
+            position: relative; z-index: 1000;
+            display: flex; justify-content: center;
+        }
+
         .fluid-cloud {
             background-color: var(--island-bg);
-            /* O HyperOS usa um arredondamento suave (Squircle visual) */
-            border-radius: 30px; 
-            width: 120px; 
-            height: 36px;
-            position: relative; z-index: 1000;
+            border-radius: 40px;
+            width: 140px; height: 40px; /* Tamanho inicial fechado */
             display: flex; align-items: center; justify-content: center;
-            
-            /* Sombra suave característica da Xiaomi */
-            box-shadow: 0 8px 40px rgba(0,0,0,0.7), inset 0 1px 1px rgba(255,255,255,0.1);
-            
-            /* Animação Elástica */
-            transition: 
-                width 0.6s var(--spring-easing), 
-                height 0.6s var(--spring-easing), 
-                border-radius 0.6s ease;
-            
-            cursor: pointer; overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.15);
+            transition: width 0.6s var(--spring-easing), height 0.6s var(--spring-easing), border-radius 0.4s ease;
+            overflow: hidden; cursor: pointer;
         }
-
-        /* Hover sutil */
-        .fluid-cloud:hover:not(.expanded) { transform: scale(1.02); }
 
         /* ESTADO EXPANDIDO */
         .fluid-cloud.expanded {
-            width: 360px; 
-            height: 100px; /* Um pouco mais compacto que o iOS */
-            border-radius: 28px; 
+            width: 360px; height: 110px;
+            border-radius: 32px;
             cursor: default;
         }
 
-        .content-wrapper {
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-            opacity: 0; transform: scale(0.9); transition: all 0.2s ease;
+        /* CONTEÚDO */
+        .content-layer {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
         }
 
-        .fluid-cloud.expanded .content-wrapper {
-            opacity: 1; transform: scale(1); transition: all 0.4s ease 0.15s;
+        .content-layer.active {
+            opacity: 1; pointer-events: all; transition-delay: 0.1s;
         }
 
-        /* TELA LOGIN */
-        .login-container { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        /* TELA DE LOGIN */
         .login-btn {
-            background-color: var(--spotify-green); color: #000; border: none; padding: 8px 20px;
-            border-radius: 50px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;
-            transition: transform 0.2s;
-        }
-        .login-btn:active { transform: scale(0.95); }
-
-        /* TELA PLAYER */
-        .player-view {
-            display: none; width: 100%; padding: 0 18px; align-items: center; justify-content: space-between;
+            background: var(--spotify-green); color: black; border: none;
+            padding: 8px 24px; border-radius: 20px; font-weight: 700; cursor: pointer;
+            font-size: 14px; display: flex; align-items: center; gap: 8px;
         }
 
-        /* Capa do Álbum - No HyperOS é levemente menor e muito arredondada */
+        /* TELA DO PLAYER */
+        .player-ui {
+            width: 100%; height: 100%; padding: 0 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
         .album-art {
-            width: 52px; height: 52px; 
-            border-radius: 12px; 
-            background-color: #222; background-size: cover; background-position: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            width: 60px; height: 60px; border-radius: 12px;
+            background-color: #333; background-size: cover; background-position: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             flex-shrink: 0;
         }
 
-        /* Info da Faixa */
-        .track-info {
-            flex: 1; margin-left: 14px; margin-right: 10px;
-            display: flex; flex-direction: column; justify-content: center; overflow: hidden;
-        }
-        
-        .track-title { 
-            font-size: 14px; font-weight: 600; color: var(--text-main);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            margin-bottom: 2px;
-        }
-        
-        /* Efeito de onda sonora visual (simulado) no texto tocando */
-        .playing .track-title { color: var(--spotify-green); }
-
-        .artist { 
-            color: var(--text-sub); font-size: 12px; font-weight: 400;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+        .track-details {
+            flex: 1; margin: 0 15px; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Controles - Minimalistas */
-        .controls { display: flex; gap: 12px; align-items: center; }
-        .control-btn { 
-            background: none; border: none; cursor: pointer; color: white; 
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0.9; transition: opacity 0.2s;
-        }
-        .control-btn:hover { opacity: 1; color: var(--spotify-green); }
-        .control-btn svg { filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
+        .track-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; }
+        .artist-name { font-size: 13px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
-        /* Estado Pequeno (Bolha) - Quando colapsado e tocando */
-        .mini-indicator {
-            display: flex; gap: 5px; align-items: center; width: 100%; justify-content: center;
-        }
-        .sound-wave {
-            width: 3px; height: 10px; background: var(--spotify-green); border-radius: 2px;
-            animation: wave 1s infinite ease-in-out;
-        }
-        .sound-wave:nth-child(2) { animation-delay: 0.1s; height: 14px; }
-        .sound-wave:nth-child(3) { animation-delay: 0.2s; }
+        .controls { display: flex; align-items: center; gap: 10px; }
+        .btn-ctrl { background: none; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-ctrl:hover { color: var(--spotify-green); }
+
+        /* MENSAGEM DE STATUS */
+        .status-msg { font-size: 12px; color: #777; text-align: center; }
         
-        @keyframes wave {
-            0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
-            50% { transform: scaleY(1); opacity: 1; }
-        }
+        /* MINI VISUALIZER (Quando fechado) */
+        .mini-visualizer { display: flex; gap: 3px; align-items: center; height: 10px; }
+        .bar { width: 3px; background: var(--spotify-green); border-radius: 2px; animation: bounce 0.8s infinite ease-in-out; }
+        .bar:nth-child(2) { animation-delay: 0.1s; height: 12px; }
+        .bar:nth-child(3) { animation-delay: 0.2s; height: 8px; }
+        @keyframes bounce { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
 
     </style>
 </head>
 <body>
 
-    <div class="fluid-cloud" id="island">
-        
-        <div class="content-wrapper" id="collapsedView" style="position: absolute; opacity: 1;">
-            <div class="mini-indicator" id="miniWave" style="display: none;">
-                <div class="sound-wave"></div>
-                <div class="sound-wave"></div>
-                <div class="sound-wave"></div>
-            </div>
-        </div>
-
-        <div class="content-wrapper" id="expandedContent">
-             
-            <div id="loginSection" class="login-container">
-                <button class="login-btn" onclick="authorizeSpotify()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-                    Conectar Spotify
+    <div class="island-container">
+        <div class="fluid-cloud" id="island">
+            
+            <div class="content-layer" id="loginLayer">
+                <button class="login-btn" onclick="authorize()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    Conectar
                 </button>
             </div>
 
-            <div id="playerSection" class="player-view">
-                <div class="album-art" id="albumArt"></div>
-                <div class="track-info" id="trackInfoContainer">
-                    <span class="track-title" id="trackTitle">Pausado</span>
-                    <span class="artist" id="artistName">HyperOS Player</span>
-                </div>
-                <div class="controls">
-                    <button class="control-btn" onclick="previousTrack()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-                    </button>
-                    <button class="control-btn" onclick="togglePlayback()" id="playPauseBtn">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    </button>
-                    <button class="control-btn" onclick="nextTrack()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-                    </button>
+            <div class="content-layer" id="playerLayer">
+                <div class="player-ui">
+                    <div class="album-art" id="albumArt"></div>
+                    <div class="track-details">
+                        <div class="track-name" id="trackName">Conectando...</div>
+                        <div class="artist-name" id="artistName">Aguarde</div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn-ctrl" onclick="player.previousTrack()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                        </button>
+                        <button class="btn-ctrl" onclick="player.togglePlay()" id="playBtn">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        </button>
+                        <button class="btn-ctrl" onclick="player.nextTrack()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <div class="content-layer" id="miniLayer">
+                <div class="mini-visualizer">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
         // ==========================================
-        // CONFIGURAÇÃO: COLOQUE SEUS DADOS AQUI
+        // CONFIGURAÇÃO
         // ==========================================
         const CLIENT_ID = 'ff2d9d81535645d29d8ba470833a264d'; 
-        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; 
+        const REDIRECT_URI = 'https://pablinxd24.github.io/dynamic/'; // Mude para seu URL exato
         // ==========================================
 
-        // Escopos necessários para ler e controlar
-        const SCOPES = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
-        
-        // ENDPOINTS OFICIAIS DO SPOTIFY (Corrigidos)
-        const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize';
-        const API_BASE = 'https://api.spotify.com/v1';
-         
-        let accessToken = null;
+        let player;
+        let token = null;
+        let deviceId = null;
 
-        // 1. Autenticação
-        function authorizeSpotify(e) {
-            if(e) e.stopPropagation();
-            if (!CLIENT_ID) { alert("Configure o Client ID!"); return; }
-            
-            const url = `${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}&response_type=token&show_dialog=true`;
-            window.location.href = url;
-        }
-
-        function getTokenFromUrl() {
-            if (window.location.hash) {
-                const hash = window.location.hash.substring(1).split('&').reduce((initial, item) => {
-                    if (item) {
-                        var parts = item.split('=');
-                        initial[parts[0]] = decodeURIComponent(parts[1]);
-                    }
-                    return initial;
-                }, {});
-                window.location.hash = ''; 
-                return hash.access_token;
-            }
-            return null;
-        }
-
-        // 2. Inicialização
-        window.addEventListener('load', () => {
-            accessToken = getTokenFromUrl();
-             
-            if (accessToken) {
-                // Estado inicial conectado
-                document.getElementById('island').classList.add('expanded');
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('playerSection').style.display = 'flex';
-                
-                fetchNowPlaying();
-                setInterval(fetchNowPlaying, 3000); // Atualiza a cada 3s para ser responsivo
-            }
-        });
-
-        // 3. API Calls (Agora usando endpoints reais)
-        async function fetchNowPlaying() {
-            if (!accessToken) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/me/player/currently-playing`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-
-                if (response.status === 204 || response.status > 400) {
-                    // Nada tocando
-                    setPlayerState(false);
-                    return;
-                }
-
-                const data = await response.json();
-                updateUI(data);
-            } catch (e) {
-                console.error("Erro API:", e);
-            }
-        }
-
-        function updateUI(data) {
-            if (!data || !data.item) return;
-
-            const title = data.item.name;
-            const artist = data.item.artists.map(a => a.name).join(', ');
-            const albumImage = data.item.album.images[0]?.url;
-            const isPlaying = data.is_playing;
-
-            document.getElementById('trackTitle').innerText = title;
-            document.getElementById('artistName').innerText = artist;
-            
-            if(albumImage) {
-                document.getElementById('albumArt').style.backgroundImage = `url('${albumImage}')`;
-            }
-
-            // Atualiza Botão Play/Pause e Visualizador
-            const playBtn = document.getElementById('playPauseBtn');
-            const trackInfo = document.getElementById('trackInfoContainer');
-            const miniWave = document.getElementById('miniWave');
-
-            if (isPlaying) {
-                playBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
-                trackInfo.classList.add('playing');
-                miniWave.style.display = 'flex'; // Mostra onda quando fechado
-            } else {
-                playBtn.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-                trackInfo.classList.remove('playing');
-                miniWave.style.display = 'none';
-            }
-        }
-
-        function setPlayerState(isActive) {
-            if(!isActive) {
-                document.getElementById('trackTitle').innerText = "Spotify";
-                document.getElementById('artistName').innerText = "Sem reprodução";
-                document.getElementById('playPauseBtn').innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-            }
-        }
-
-        // 4. Controles
-        async function sendCommand(endpoint, method = 'POST') {
-            if (!accessToken) return;
-            try {
-                await fetch(`${API_BASE}/me/player/${endpoint}`, {
-                    method: method,
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                setTimeout(fetchNowPlaying, 300); // Atualiza rápido para feedback visual
-            } catch(e) { console.error(e); }
-        }
-
-        function togglePlayback() {
-            // Verifica o ícone atual para decidir (hack visual simples)
-            const isPaused = document.getElementById('playPauseBtn').innerHTML.includes('M8 5v14l11-7z');
-            if (isPaused) sendCommand('play', 'PUT');
-            else sendCommand('pause', 'PUT');
-        }
-
-        function nextTrack() { sendCommand('next'); }
-        function previousTrack() { sendCommand('previous'); }
-
-        // 5. Interação de Expandir/Colapsar
+        // 1. Inicializa o ambiente
         const island = document.getElementById('island');
-        island.addEventListener('click', (e) => {
-            // Se clicar nos controles, não fecha a ilha
-            if(e.target.closest('button')) return; 
+        
+        function getHashParams() {
+            var hashParams = {};
+            var e, r = /([^&;=]+)=?([^&;]*)/g,
+                q = window.location.hash.substring(1);
+            while ( e = r.exec(q)) {
+               hashParams[e[1]] = decodeURIComponent(e[2]);
+            }
+            return hashParams;
+        }
+
+        // 2. Se já voltamos do login
+        const params = getHashParams();
+        if (params.access_token) {
+            token = params.access_token;
+            window.location.hash = ''; // Limpa URL
+            switchLayer('playerLayer');
+            // A ilha vai expandir quando o SDK estiver "Ready"
+        } else {
+            switchLayer('loginLayer');
+        }
+
+        // 3. Função de Login
+        function authorize() {
+            // Escopos para Streaming Web
+            const scopes = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
+            window.location.href = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}`;
+        }
+
+        // 4. Configuração do SDK do Spotify (Web Playback)
+        window.onSpotifyWebPlaybackSDKReady = () => {
+            if (!token) return;
+
+            player = new Spotify.Player({
+                name: 'HyperOS Island Web Player',
+                getOAuthToken: cb => { cb(token); },
+                volume: 0.5
+            });
+
+            // Listeners de Erro
+            player.addListener('initialization_error', ({ message }) => { console.error(message); });
+            player.addListener('authentication_error', ({ message }) => { 
+                console.error(message); 
+                alert("Token expirou. Faça login novamente.");
+                switchLayer('loginLayer');
+            });
+            player.addListener('account_error', ({ message }) => { console.error(message); alert("Requer Premium"); });
+
+            // Player Pronto!
+            player.addListener('ready', ({ device_id }) => {
+                console.log('Ready with Device ID', device_id);
+                deviceId = device_id;
+                
+                // Expande a ilha automaticamente
+                island.classList.add('expanded');
+                
+                // Atualiza UI
+                document.getElementById('trackName').innerText = "Pronto para tocar";
+                document.getElementById('artistName').innerText = "Selecione este player no Spotify";
+                
+                // Tenta transferir a reprodução para cá (Opcional, nem sempre o navegador permite autoplay)
+                transferPlayback(device_id);
+            });
+
+            // Mudança de Estado (Play/Pause/Next)
+            player.addListener('player_state_changed', state => {
+                if (!state) return;
+                updateUI(state);
+            });
+
+            player.connect();
+        };
+
+        // 5. Transferir reprodução para este navegador
+        async function transferPlayback(id) {
+            await fetch(`https://api.spotify.com/v1/me/player`, {
+                method: 'PUT',
+                body: JSON.stringify({ device_ids: [id], play: false }),
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                }
+            });
+        }
+
+        // 6. Atualizar a Interface
+        function updateUI(state) {
+            const track = state.track_window.current_track;
             
-            island.classList.toggle('expanded');
-            
-            // Controle visual do conteúdo
-            const expandedContent = document.getElementById('expandedContent');
-            const collapsedView = document.getElementById('collapsedView');
-            
-            if (island.classList.contains('expanded')) {
-                collapsedView.style.opacity = '0';
-                setTimeout(() => collapsedView.style.display = 'none', 200);
+            document.getElementById('trackName').innerText = track.name;
+            document.getElementById('artistName').innerText = track.artists.map(a => a.name).join(', ');
+            document.getElementById('albumArt').style.backgroundImage = `url('${track.album.images[0].url}')`;
+
+            const playBtn = document.getElementById('playBtn');
+            if (state.paused) {
+                playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
             } else {
-                collapsedView.style.display = 'flex';
-                setTimeout(() => collapsedView.style.opacity = '1', 50);
+                playBtn.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+            }
+        }
+
+        // 7. Gerenciador de Layers (Views)
+        function switchLayer(layerId) {
+            document.querySelectorAll('.content-layer').forEach(el => el.classList.remove('active'));
+            document.getElementById(layerId).classList.add('active');
+        }
+
+        // 8. Clique na Ilha (Expandir/Colapsar)
+        island.addEventListener('click', (e) => {
+            if(e.target.closest('button')) return; // Ignora cliques nos botões
+
+            if (token) {
+                island.classList.toggle('expanded');
+                
+                if (island.classList.contains('expanded')) {
+                    switchLayer('playerLayer');
+                } else {
+                    // Se estiver tocando, mostra visualizer
+                    player.getCurrentState().then(state => {
+                        if (state && !state.paused) {
+                            switchLayer('miniLayer');
+                        } else {
+                            switchLayer('playerLayer'); // Mantém normal se pausado
+                            island.classList.add('expanded'); // Reabre se não tiver nada
+                        }
+                    });
+                }
             }
         });
+
     </script>
 </body>
 </html>
