@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J&J OS - Smart Grid</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>J&J OS - Smart Grid + Focus</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -21,7 +21,6 @@
             --jj-text: #1a1a1a;
             --island-bg: #000000;
             --spring-easing: cubic-bezier(0.19, 1, 0.22, 1);
-            --content-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -29,233 +28,192 @@
         body {
             height: 100vh; width: 100vw;
             background-color: #f8f8f8;
-            background-image: linear-gradient(#e5e5e5 1px, transparent 1px), linear-gradient(90deg, #e5e5e5 1px, transparent 1px);
-            background-size: 50px 50px;
+            background-image: radial-gradient(#d0d0d0 1px, transparent 1px);
+            background-size: 20px 20px;
             overflow: hidden; 
             display: flex; flex-direction: column;
         }
 
-        /* --- ÁREA DE TRABALHO (GRID FLUIDO) --- */
-        .desktop-container {
-            width: 100%; height: 100%;
-            overflow-y: auto; overflow-x: hidden;
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            align-content: flex-start; 
-            gap: 15px;
-            padding: 20px;
-            padding-bottom: 80px;
+        /* --- LAYOUT --- */
+        .master-layer {
+            width: 100%; flex: 0 0 auto;
+            display: flex; justify-content: center;
+            padding-top: 15px; padding-bottom: 10px;
+            z-index: 2000; pointer-events: none; /* Permite clicar através nas laterais */
         }
-        
-        .desktop-container::-webkit-scrollbar { width: 0px; background: transparent; }
+        #island-main { pointer-events: all; }
 
-        .clickable { transition: transform 0.1s ease; cursor: pointer; }
-        .clickable:active { transform: scale(0.96); }
+        .widget-layer {
+            flex: 1; width: 100%; padding: 15px;
+            display: grid;
+            /* Grid Inteligente: Preenche espaços */
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-auto-rows: minmax(250px, auto); /* Altura mínima confortável */
+            gap: 15px;
+            overflow-y: auto; overflow-x: hidden;
+            padding-bottom: 80px; /* Espaço extra no final */
+        }
 
-        /* --- ILHA GENÉRICA --- */
+        /* --- ILHAS (WIDGETS) --- */
         .fluid-cloud {
-            flex: 0 0 auto; 
-            z-index: 10;
             background-color: var(--island-bg); color: white; border-radius: 35px; 
-            height: 36px; width: 140px; position: relative; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            transition: all 0.6s var(--spring-easing);
+            position: relative; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.5s var(--spring-easing);
             display: flex; flex-direction: column; align-items: center; overflow: hidden;
         }
 
-        /* --- ILHA MESTRA --- */
-        .master-row {
-            width: 100%; display: flex; justify-content: center;
-            position: sticky; top: 10px; z-index: 1000;
-            margin-bottom: 10px; pointer-events: none;
-        }
-        
-        #island-main { pointer-events: all; }
-
-        /* Responsividade da Ilha Mestra */
-        #island-main.expanded {
-            width: clamp(340px, 95vw, 440px); /* Ajusta à tela */
-            height: 85vh; max-height: 800px;
-            border-radius: 42px;
-            background-color: #ffffff; color: var(--jj-text); cursor: default; 
-            border: 1px solid rgba(0,0,0,0.06);
-            box-shadow: 0 40px 100px rgba(0,0,0,0.2);
-        }
-
-        /* --- ILHAS AUXILIARES (WIDGETS RESPONSIVOS) --- */
+        /* ESTADO GRID (Normal) */
         .island-aux {
-            width: 0; opacity: 0; pointer-events: none; transform: scale(0.9);
-            margin: 0; /* Margem controlada pelo gap do flex */
+            opacity: 0; transform: scale(0.9);
+            width: 100%; height: 100%;
         }
         
         .island-aux.active {
-            /* LÓGICA RESPONSIVA AQUI */
-            /* Min: 320px | Ideal: 90% da tela | Max: 420px */
-            width: clamp(320px, 90vw, 420px);
-            
-            /* Altura automática baseada no conteúdo, mas com limite na tela */
-            height: auto; 
-            min-height: 300px; 
-            max-height: 82vh; 
-            
-            opacity: 1; pointer-events: all; transform: scale(1);
+            opacity: 1; transform: scale(1);
             background-color: #ffffff; color: var(--jj-text); cursor: default; 
-            border-radius: 38px; border: 1px solid rgba(0,0,0,0.06);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            transition: transform 0.4s var(--spring-easing), opacity 0.3s ease, width 0.4s var(--spring-easing);
-            
-            /* Para garantir que o flex não estique ela estranhamente */
-            flex-grow: 0; 
-            flex-shrink: 0; 
+            border-radius: 32px; border: 1px solid rgba(0,0,0,0.06);
+            /* Grid controla tamanho */
         }
 
-        /* MEDIA QUERY PARA CELULARES (Layout Modal) */
+        /* ESTADO MAXIMIZADO (FOCO) */
+        .island-aux.maximized {
+            position: fixed !important;
+            top: 50% !important; left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 90vw !important; height: 85vh !important;
+            z-index: 5000;
+            box-shadow: 0 50px 200px rgba(0,0,0,0.3);
+            border-color: var(--jj-yellow);
+            border-width: 2px;
+            grid-column: auto; grid-row: auto; /* Remove do fluxo do grid visualmente */
+        }
+        
+        /* Backdrop para o modo maximizado */
+        #backdrop {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(255,255,255, 0.8); backdrop-filter: blur(5px);
+            opacity: 0; pointer-events: none; transition: 0.4s; z-index: 4000;
+        }
+        body.has-maximized #backdrop { opacity: 1; pointer-events: all; }
+
+        /* MESTRA */
+        #island-main {
+            height: 36px; width: 140px; 
+            z-index: 3000; transition: width 0.6s var(--spring-easing), height 0.6s var(--spring-easing);
+        }
+        #island-main.expanded {
+            position: absolute; top: 15px; 
+            width: clamp(340px, 95vw, 480px); height: 85vh;
+            border-radius: 42px; background-color: #ffffff; color: var(--jj-text);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.25);
+        }
+
+        /* --- MOBILE --- */
         @media (max-width: 768px) {
-            .island-aux.active {
-                position: fixed; /* Solta do grid */
-                top: 50%; left: 50%;
-                transform: translate(-50%, -50%) !important; /* Centraliza */
-                width: 92vw; /* Quase tela cheia na largura */
-                max-width: none;
-                z-index: 2000 !important; /* Garante topo */
-            }
-            
-            /* Ajuste para não bugar o translate na animação de shake */
-            .shake-focus {
-                animation: shake-mobile 0.4s cubic-bezier(.36,.07,.19,.97) both;
-            }
+            .widget-layer { display: flex; flex-direction: column; }
+            .island-aux.active { flex: 0 0 auto; height: 350px; width: 100%; margin-bottom: 15px; }
+            /* Maximizado no mobile ocupa tudo */
+            .island-aux.maximized { width: 95vw !important; height: 92vh !important; top: 50% !important; }
         }
 
-        .bring-to-front { z-index: 500; box-shadow: 0 30px 80px rgba(0,0,0,0.25) !important; }
-        /* Em desktop, aumenta levemente */
-        @media (min-width: 769px) {
-            .bring-to-front { transform: scale(1.02) !important; }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-        /* Shake específico para mobile que preserva o translate(-50%, -50%) */
-        @keyframes shake-mobile {
-            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
-            20%, 60% { transform: translate(-50%, -50%) translateX(-5px); }
-            40%, 80% { transform: translate(-50%, -50%) translateX(5px); }
-        }
-        .shake-focus { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: var(--jj-yellow) !important; }
-
-        /* --- CONTEÚDO INTERNO --- */
-        .collapsed-view { width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; position: absolute; top: 0; transition: opacity 0.2s; gap: 8px; }
+        /* --- CONTEÚDO --- */
+        .collapsed-view { width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; position: absolute; top: 0; transition: opacity 0.2s; gap: 8px; cursor: pointer; }
         .status-dot { width: 6px; height: 6px; background: var(--jj-yellow); border-radius: 50%; box-shadow: 0 0 10px var(--jj-yellow); }
         
         .expanded-view {
             width: 100%; height: 100%; opacity: 0; pointer-events: none;
-            display: flex; flex-direction: column; padding: 25px;
-            transition: opacity 0.4s ease 0.2s;
-            /* Importante para widgets de altura variável */
-            overflow: hidden; 
+            display: flex; flex-direction: column; padding: 20px;
+            transition: opacity 0.3s ease 0.2s; overflow: hidden;
         }
         .fluid-cloud.expanded .expanded-view, .island-aux.active .expanded-view { opacity: 1; pointer-events: all; }
         .fluid-cloud.expanded .collapsed-view, .island-aux.active .collapsed-view { opacity: 0; pointer-events: none; }
 
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #f4f4f4; flex-shrink: 0; }
-        .header-title { font-weight: 800; color: var(--jj-brown); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .close-btn { width: 32px; height: 32px; border-radius: 50%; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #888; transition: 0.2s; }
-        .close-btn:hover { background: #ffeaea; color: #ff3b30; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #f4f4f4; flex-shrink: 0; }
+        .header-title { font-weight: 800; color: var(--jj-brown); font-size: 0.9rem; text-transform: uppercase; cursor: pointer; flex: 1; }
+        .win-controls { display: flex; gap: 8px; }
+        .win-btn { width: 28px; height: 28px; border-radius: 50%; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #888; transition: 0.2s; cursor: pointer; }
+        .win-btn:hover { background: #ffeaea; color: #ff3b30; }
+        .win-btn.max-btn:hover { background: #eaffea; color: #00cc44; }
 
-        .content-scroll { flex: 1; overflow-y: auto; padding-right: 4px; scrollbar-width: none; animation: fadeIn 0.4s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* DOCK */
-        .dock-container {
-            margin-top: 15px; background: #fafafa; border-radius: 30px; padding: 10px 20px;
-            display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; flex-shrink: 0;
-        }
-        .dock-item { display: flex; flex-direction: column; align-items: center; width: 60px; position: relative; }
-        .dock-icon-box {
-            width: 48px; height: 48px; border-radius: 18px; background: #fff; border: 1px solid #eee;
-            display: flex; align-items: center; justify-content: center; font-size: 20px;
-            margin-bottom: 5px; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: var(--jj-brown); 
-        }
-        .dock-item:hover .dock-icon-box { transform: translateY(-4px); border-color: var(--jj-yellow); }
-        .dock-item.active .dock-icon-box { background: var(--jj-yellow); color: #000; border-color: var(--jj-yellow); transform: translateY(-6px); box-shadow: 0 8px 20px rgba(255, 200, 0, 0.3); }
-        .dock-label { font-size: 8px; font-weight: 700; opacity: 0.6; text-transform: uppercase; }
-        .dbl-click-hint { position: absolute; top: -30px; background: #1a1a1a; color: white; padding: 4px 8px; border-radius: 8px; font-size: 8px; font-weight: 600; opacity: 0; transform: translateY(10px); transition: 0.2s; pointer-events: none; white-space: nowrap; }
-        .dock-item:hover .dbl-click-hint { opacity: 1; transform: translateY(0); }
+        .content-scroll { flex: 1; overflow-y: auto; padding-right: 2px; scrollbar-width: none; }
 
         /* UI ELEMENTS */
-        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
-        .jj-card {
-            background: #fff; padding: 10px; border-radius: 18px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #f0f0f0; transition: all 0.2s;
-        }
-        .jj-card:hover { transform: translateY(-3px); border-color: var(--jj-yellow); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .jj-card img { width: 100%; height: 100px; border-radius: 12px; object-fit: cover; background: #f8f8f8; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+        .jj-card { background: #fff; padding: 8px; border-radius: 14px; display: flex; flex-direction: column; gap: 5px; border: 1px solid #eee; transition: 0.2s; cursor: pointer; }
+        .jj-card:hover { border-color: var(--jj-yellow); transform: translateY(-2px); }
+        .jj-card img { width: 100%; height: 80px; border-radius: 10px; object-fit: cover; background: #f8f8f8; }
         
-        .jj-input { width: 100%; background: #f8f8f8; border: 1px solid transparent; padding: 14px; border-radius: 16px; margin-bottom: 10px; font-size: 0.85rem; outline: none; transition: 0.3s; color: #333; }
-        .jj-input:focus { background: white; border-color: var(--jj-yellow); box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.1); }
-        .jj-btn { width: 100%; background: var(--jj-yellow); color: #000; font-weight: 800; padding: 16px; border-radius: 18px; border: none; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(255, 200, 0, 0.2); margin-top: 10px; }
+        .jj-input { width: 100%; background: #f8f8f8; border: 1px solid transparent; padding: 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.8rem; outline: none; }
+        .jj-input:focus { background: white; border-color: var(--jj-yellow); }
+        .jj-btn { width: 100%; background: var(--jj-yellow); color: #000; font-weight: 800; padding: 12px; border-radius: 14px; border: none; cursor: pointer; text-transform: uppercase; font-size: 0.7rem; margin-top: 5px; }
 
-        #island-main.scanner-mode { width: 360px; height: 360px; background: #000; color: white; border: none; }
+        /* DOCK */
+        .dock-container { margin-top: 10px; background: #fafafa; border-radius: 25px; padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; flex-shrink: 0; }
+        .dock-item { display: flex; flex-direction: column; align-items: center; width: 50px; cursor: pointer; }
+        .dock-icon-box { width: 40px; height: 40px; border-radius: 14px; background: #fff; border: 1px solid #eee; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 4px; transition: 0.2s; color: var(--jj-brown); }
+        .dock-item.active .dock-icon-box { background: var(--jj-yellow); color: #000; transform: translateY(-4px); border-color: var(--jj-yellow); }
+        .dock-label { font-size: 7px; font-weight: 700; opacity: 0.6; text-transform: uppercase; }
+
+        #island-main.scanner-mode { width: 320px; height: 320px; background: #000; border: none; }
         #reader { width: 100%; height: 100%; border-radius: 40px; overflow: hidden; }
+        
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+        .shake-focus { animation: shake 0.3s ease; border-color: var(--jj-yellow) !important; }
 
     </style>
 </head>
 <body>
+    <div id="backdrop" onclick="minimizeAll()"></div>
 
-    <div class="desktop-container" id="grid-stage">
-        
-        <div class="master-row">
-            <div class="fluid-cloud clickable" id="island-main">
-                <div class="collapsed-view" onclick="toggleMain()">
-                    <div class="status-dot"></div>
-                    <span id="clock-display" style="font-size: 11px; font-weight: 700; letter-spacing:0.5px">--:--</span>
+    <div class="master-layer">
+        <div class="fluid-cloud clickable" id="island-main">
+            <div class="collapsed-view" onclick="toggleMain()">
+                <div class="status-dot"></div>
+                <span id="clock-display" style="font-size: 11px; font-weight: 700; letter-spacing:0.5px">--:--</span>
+            </div>
+            <div class="expanded-view">
+                <div class="header-bar">
+                    <span class="header-title" id="main-title">Sistema J&J</span>
+                    <div class="win-controls">
+                        <div class="win-btn" onclick="toggleMain()">✕</div>
+                    </div>
                 </div>
-                <div class="expanded-view">
-                    <div class="header-bar">
-                        <span class="header-title" id="main-title">Sistema J&J</span>
-                        <div class="close-btn clickable" onclick="toggleMain()">✕</div>
+                <div class="content-scroll" id="main-content"></div>
+                <div id="scanner-container" style="display:none; height:100%; flex-direction:column;">
+                    <div id="reader"></div>
+                    <button class="jj-btn" style="background:white; margin-top:20px" onclick="stopScanner()">Cancelar</button>
+                </div>
+                <div class="dock-container" id="main-dock">
+                    <div class="dock-item active" onclick="handleDockClick('list')" id="dock-list">
+                        <div class="dock-icon-box"><i class="fas fa-th-large"></i></div>
+                        <span class="dock-label">Acervo</span>
                     </div>
-                    <div class="content-scroll" id="main-content"></div>
-                    <div id="scanner-container" style="display:none; height:100%; flex-direction:column;">
-                        <div id="reader"></div>
-                        <button class="jj-btn clickable" style="background:white; margin-top:20px" onclick="stopScanner()">Cancelar</button>
+                    <div class="dock-item" onclick="handleDockClick('add')" id="dock-add">
+                        <div class="dock-icon-box"><i class="fas fa-plus"></i></div>
+                        <span class="dock-label">Novo</span>
                     </div>
-                    <div class="dock-container" id="main-dock">
-                        <div class="dock-item clickable active" onclick="handleDockClick('list')" id="dock-list">
-                            <div class="dbl-click-hint">2x Nova Janela</div>
-                            <div class="dock-icon-box"><i class="fas fa-th-large"></i></div>
-                            <span class="dock-label">Acervo</span>
-                        </div>
-                        <div class="dock-item clickable" onclick="handleDockClick('add')" id="dock-add">
-                            <div class="dbl-click-hint">2x Nova Janela</div>
-                            <div class="dock-icon-box"><i class="fas fa-plus"></i></div>
-                            <span class="dock-label">Novo</span>
-                        </div>
-                        <div class="dock-item clickable" onclick="handleDockClick('dash')" id="dock-dash">
-                            <div class="dbl-click-hint">2x Nova Janela</div>
-                            <div class="dock-icon-box"><i class="fas fa-chart-pie"></i></div>
-                            <span class="dock-label">Dash</span>
-                        </div>
-                        <div class="dock-item clickable" onclick="startScanner()">
-                            <div class="dock-icon-box" style="background:#1a1a1a; color:white"><i class="fas fa-qrcode"></i></div>
-                            <span class="dock-label">Scan</span>
-                        </div>
+                    <div class="dock-item" onclick="handleDockClick('dash')" id="dock-dash">
+                        <div class="dock-icon-box"><i class="fas fa-chart-pie"></i></div>
+                        <span class="dock-label">Dash</span>
+                    </div>
+                    <div class="dock-item" onclick="startScanner()">
+                        <div class="dock-icon-box" style="background:#1a1a1a; color:white"><i class="fas fa-qrcode"></i></div>
+                        <span class="dock-label">Scan</span>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        </div>
+    <div class="widget-layer" id="widget-stage"></div>
 
     <script>
-        // RELÓGIO
+        // CONFIG
         setInterval(() => {
             document.getElementById('clock-display').innerText = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
         }, 1000);
 
-        // FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDTYFc2tphilGadT8LfSV_mTI0GRmebMdI",
             authDomain: "jj26-d5c78.firebaseapp.com",
@@ -268,32 +226,29 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // UI LOGIC
-        const stage = document.getElementById('grid-stage');
+        // LOGIC
+        const widgetStage = document.getElementById('widget-stage');
         const mainIsland = document.getElementById('island-main');
         let html5QrCode = null;
         let clickTimer = null;
-        let maxZIndex = 100;
 
         window.onload = () => { setTimeout(() => toggleMain(), 300); };
 
         function toggleMain() {
             mainIsland.classList.toggle('expanded');
             if(mainIsland.classList.contains('expanded')) {
-                mainIsland.classList.remove('clickable');
                 setMainView('list');
+                minimizeAll(); // Foca na mestra
             } else {
-                mainIsland.classList.add('clickable');
                 stopScanner();
             }
         }
 
-        // CLIQUE INTELIGENTE
         function handleDockClick(view) {
             if (clickTimer) {
                 clearTimeout(clickTimer);
                 clickTimer = null;
-                spawnIsland(view);
+                spawnWidget(view);
             } else {
                 clickTimer = setTimeout(() => {
                     setMainView(view);
@@ -302,68 +257,83 @@
             }
         }
 
-        // --- SISTEMA DE JANELAS (SINGLETON GRID) ---
-        function spawnIsland(viewType, data = null) {
+        // --- SISTEMA DE WIDGETS ---
+        function spawnWidget(viewType, data = null) {
             let uniqueId = 'win-' + viewType;
             if(viewType === 'edit' && data) uniqueId += '-' + data.id;
 
             const existing = document.getElementById(uniqueId);
             if(existing) {
-                bringToFront(existing);
-                existing.classList.remove('shake-focus');
-                void existing.offsetWidth; 
-                existing.classList.add('shake-focus');
+                toggleMaximize(uniqueId); // Já existe? Expande/Foca
                 return;
             }
 
             const html = `
-                <div class="fluid-cloud island-aux clickable" id="${uniqueId}" onclick="bringToFront(this)">
-                    <div class="collapsed-view" onclick="toggleAux('${uniqueId}')">
-                        <div class="status-dot"></div>
-                        <span>Janela J&J</span>
-                    </div>
+                <div class="fluid-cloud island-aux" id="${uniqueId}">
                     <div class="expanded-view">
-                        <div class="header-bar">
-                            <span class="header-title title-slot">Carregando...</span>
-                            <div class="close-btn clickable" onclick="closeIsland('${uniqueId}')">✕</div>
+                        <div class="header-bar" ondblclick="toggleMaximize('${uniqueId}')">
+                            <span class="header-title title-slot" onclick="toggleMaximize('${uniqueId}')">Carregando...</span>
+                            <div class="win-controls">
+                                <div class="win-btn max-btn" onclick="toggleMaximize('${uniqueId}')"><i class="fas fa-expand-alt" style="font-size:10px"></i></div>
+                                <div class="win-btn" onclick="closeWidget('${uniqueId}')">✕</div>
+                            </div>
                         </div>
                         <div class="content-scroll content-slot"></div>
                     </div>
                 </div>
             `;
             
-            stage.insertAdjacentHTML('beforeend', html);
+            widgetStage.insertAdjacentHTML('afterbegin', html); // Adiciona no topo
             
             setTimeout(() => {
                 const el = document.getElementById(uniqueId);
                 el.classList.add('active'); 
-                el.classList.remove('clickable');
-                bringToFront(el);
-                
                 const container = el.querySelector('.content-slot');
                 const title = el.querySelector('.title-slot');
                 renderContent(viewType, container, title, data);
             }, 50);
         }
 
-        function bringToFront(el) {
-            maxZIndex++;
-            el.style.zIndex = maxZIndex;
-            document.querySelectorAll('.island-aux').forEach(i => i.classList.remove('bring-to-front'));
-            if(window.innerWidth > 768) el.classList.add('bring-to-front'); // Só aplica scale no desktop
+        function closeWidget(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('active'); 
+            el.classList.remove('maximized');
+            checkBackdrop();
+            setTimeout(() => el.remove(), 400);
         }
 
-        function closeIsland(id) {
+        // --- LÓGICA DE EXPANSÃO (MAXIMIZAR) ---
+        function toggleMaximize(id) {
             const el = document.getElementById(id);
-            el.classList.remove('active');
-            setTimeout(() => el.remove(), 500);
+            
+            // Se clicar em um, minimiza os outros
+            document.querySelectorAll('.island-aux').forEach(w => {
+                if(w.id !== id) w.classList.remove('maximized');
+            });
+
+            // Toggle do atual
+            el.classList.toggle('maximized');
+            
+            // Fecha a ilha principal se abrir um widget
+            if(el.classList.contains('maximized')) {
+                mainIsland.classList.remove('expanded');
+                mainIsland.classList.add('clickable');
+            }
+            
+            checkBackdrop();
         }
 
-        function toggleAux(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('active');
-            el.classList.toggle('clickable');
-            if(el.classList.contains('active')) bringToFront(el);
+        function minimizeAll() {
+            document.querySelectorAll('.island-aux').forEach(w => w.classList.remove('maximized'));
+            checkBackdrop();
+        }
+
+        function checkBackdrop() {
+            if(document.querySelector('.island-aux.maximized')) {
+                document.body.classList.add('has-maximized');
+            } else {
+                document.body.classList.remove('has-maximized');
+            }
         }
 
         // --- RENDERIZADOR ---
@@ -373,72 +343,54 @@
             document.getElementById('dock-'+view).classList.add('active');
             
             const container = document.getElementById('main-content');
-            container.style.animation = 'none';
-            container.offsetHeight; 
-            container.style.animation = 'fadeIn 0.4s var(--content-easing) forwards';
-            
+            container.innerHTML = '<div style="text-align:center; padding:20px; opacity:0.5"><i class="fas fa-circle-notch fa-spin"></i></div>';
             renderContent(view, container, document.getElementById('main-title'));
         }
 
         function renderContent(view, container, titleElement, extraData = null) {
-            container.innerHTML = '<div style="text-align:center; padding:50px; opacity:0.5"><i class="fas fa-circle-notch fa-spin"></i></div>';
-
             if (view === 'list') {
                 titleElement.innerText = "Acervo";
-                database.ref('produtos').on('value', snap => {
+                database.ref('produtos').limitToLast(20).on('value', snap => {
                     const data = snap.val();
                     container.innerHTML = '';
                     if (data) {
                         const grid = document.createElement('div');
                         grid.className = 'products-grid';
-                        Object.values(data).forEach(p => {
+                        Object.values(data).reverse().forEach(p => {
                             let img = getImg(p);
                             const card = document.createElement('div');
-                            card.className = 'jj-card clickable';
-                            card.onclick = () => spawnIsland('edit', p);
+                            card.className = 'jj-card';
+                            card.onclick = () => spawnWidget('edit', p);
                             card.innerHTML = `
                                 <img src="${img}">
                                 <div>
-                                    <div style="font-weight:700; font-size:0.8rem; color:var(--jj-brown)">${p.name}</div>
-                                    <div style="font-weight:600; font-size:0.75rem; opacity:0.7">R$ ${p.price}</div>
+                                    <div style="font-weight:700; font-size:0.7rem; color:var(--jj-brown)">${p.name}</div>
+                                    <div style="font-weight:600; font-size:0.65rem; opacity:0.7">R$ ${p.price}</div>
                                 </div>`;
                             grid.appendChild(card);
                         });
                         container.appendChild(grid);
-                    } else container.innerHTML = '<p style="text-align:center; margin-top:50px; opacity:0.5">Vazio.</p>';
+                    } else container.innerHTML = '<p style="text-align:center; opacity:0.5">Vazio.</p>';
                 });
 
             } else if (view === 'dash') {
-                titleElement.innerText = "Resumo";
+                titleElement.innerText = "Performance";
                 database.ref('pedidos').on('value', snap => {
                     const data = snap.val();
                     let total = 0, count = 0;
-                    let listHtml = "";
-                    if(data) {
-                        Object.values(data).reverse().forEach(p => {
-                            total += parseFloat(p.total); count++;
-                            listHtml += `
-                                <div class="jj-card" style="display:block; cursor:default; gap:5px; border-left: 3px solid var(--jj-yellow)">
-                                    <div style="display:flex; justify-content:space-between; font-weight:700">
-                                        <span>${p.cliente}</span>
-                                        <span style="color:var(--jj-brown)">R$ ${p.total}</span>
-                                    </div>
-                                    <div style="font-size:0.7rem; opacity:0.6">${p.itens_resumo}</div>
-                                </div>`;
-                        });
-                    }
+                    if(data) Object.values(data).forEach(p => { total += parseFloat(p.total || 0); count++; });
+                    
                     container.innerHTML = `
-                        <div style="display:flex; gap:12px; margin-bottom:20px">
-                            <div style="flex:1; background:#f9f9f9; padding:15px; border-radius:18px; text-align:center; border:1px solid #eee">
+                        <div style="display:flex; gap:10px; height:100%">
+                            <div style="flex:1; background:#f9f9f9; padding:20px; border-radius:18px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
                                 <div style="font-size:0.6rem; font-weight:700; color:#aaa">VENDAS</div>
-                                <div style="font-size:1.5rem; font-weight:800; color:var(--jj-text)">${count}</div>
+                                <div style="font-size:2rem; font-weight:800; color:var(--jj-text)">${count}</div>
                             </div>
-                            <div style="flex:1; background:#fffbf0; padding:15px; border-radius:18px; text-align:center; border:1px solid #ffeeba">
-                                <div style="font-size:0.6rem; font-weight:700; color:#d4a000">TOTAL</div>
-                                <div style="font-size:1.1rem; font-weight:800; color:var(--jj-brown)">R$ ${total.toFixed(2)}</div>
+                            <div style="flex:1; background:#fffbf0; padding:20px; border-radius:18px; text-align:center; display:flex; flex-direction:column; justify-content:center; border:1px solid #ffeeba">
+                                <div style="font-size:0.6rem; font-weight:700; color:#d4a000">FATURAMENTO</div>
+                                <div style="font-size:1.4rem; font-weight:800; color:var(--jj-brown)">R$ ${total.toFixed(0)}</div>
                             </div>
                         </div>
-                        <div style="display:flex; flex-direction:column; gap:8px">${listHtml || '<p style="text-align:center">Sem dados.</p>'}</div>
                     `;
                 });
 
@@ -448,12 +400,12 @@
                     <div style="padding:5px;">
                         <input type="text" class="jj-input inp-cat" placeholder="Categoria">
                         <input type="text" class="jj-input inp-name" placeholder="Nome da Obra">
-                        <div style="display:flex; gap:10px">
+                        <div style="display:flex; gap:5px">
                             <input type="text" class="jj-input inp-price" placeholder="Preço" style="flex:1">
-                            <input type="text" class="jj-input inp-colors" placeholder="Cores" style="flex:1">
+                            <input type="text" class="jj-input inp-colors" placeholder="Cores (sep. vírgula)" style="flex:1">
                         </div>
-                        <textarea class="jj-input inp-desc" rows="4" placeholder="Descrição..."></textarea>
-                        <button class="jj-btn clickable" onclick="saveNewItem(this)">SALVAR</button>
+                        <textarea class="jj-input inp-desc" rows="3" placeholder="Descrição..."></textarea>
+                        <button class="jj-btn" onclick="saveNewItem(this)">CADASTRAR</button>
                     </div>
                 `;
 
@@ -464,44 +416,42 @@
                 let variantHtml = colors.map(c => {
                     const v = (p.variants && p.variants[c]) ? p.variants[c] : {};
                     return `
-                        <div style="background:#f9f9f9; padding:12px; border-radius:18px; margin-bottom:10px; border:1px solid #eee">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
-                                <span style="font-size:0.7rem; font-weight:800; color:#aaa">${c.toUpperCase()}</span>
-                                <input type="text" class="jj-input stock-inp" data-color="${c}" value="${v.stock || ''}" placeholder="Qtd" style="width:50px; margin:0; padding:6px; text-align:center">
-                            </div>
-                            <div style="display:flex; gap:10px; align-items:center;">
-                                <img src="${v.img || 'https://via.placeholder.com/50'}" style="width:45px; height:45px; border-radius:10px; object-fit:cover; background:white; border:1px solid #eee">
-                                <label class="clickable" style="flex:1; background:white; padding:8px; border-radius:12px; text-align:center; font-size:0.7rem; cursor:pointer; border:1px solid #e0e0e0; font-weight:600; color:#555">
-                                    Alterar Foto
-                                    <input type="file" onchange="handleImgUpload('${p.id}', '${c}', this)" style="display:none">
-                                </label>
-                            </div>
+                        <div style="background:#f9f9f9; padding:8px; border-radius:12px; margin-bottom:8px; border:1px solid #eee; display:flex; align-items:center; gap:10px">
+                            <div style="width:10px; height:10px; background:${getColorHex(c)}; border-radius:50%; border:1px solid #ccc"></div>
+                            <span style="font-size:0.7rem; font-weight:700; flex:1">${c.toUpperCase()}</span>
+                            <input type="text" class="jj-input stock-inp" data-color="${c}" value="${v.stock || ''}" placeholder="Qtd" style="width:40px; margin:0; padding:5px; text-align:center">
+                            <label style="cursor:pointer; font-size:12px; color:#555"><i class="fas fa-camera"></i>
+                                <input type="file" onchange="handleImgUpload('${p.id}', '${c}', this)" style="display:none">
+                            </label>
                         </div>`;
                 }).join('');
 
                 container.innerHTML = `
-                    <div style="background:white; padding:15px; border-radius:20px; text-align:center; margin-bottom:15px; border:1px solid #eee;">
-                        <svg class="barcode-target" style="width:100%; height:40px"></svg>
-                        <p style="font-size:0.6rem; opacity:0.4; letter-spacing:1px; margin-top:4px">${p.id}</p>
+                    <div style="display:flex; gap:10px; margin-bottom:10px">
+                        <div style="flex:1">
+                            <input type="text" class="jj-input edit-name" value="${p.name}" style="font-weight:700; margin-bottom:5px">
+                            <input type="text" class="jj-input edit-price" value="${p.price}">
+                        </div>
+                        <div style="width:80px; background:white; padding:5px; border-radius:10px; border:1px solid #eee">
+                             <svg class="barcode-target" style="width:100%; height:100%"></svg>
+                        </div>
                     </div>
                     <input type="hidden" class="edit-id" value="${p.id}">
-                    <div style="margin-bottom:15px">
-                        <input type="text" class="jj-input edit-name" value="${p.name}" style="font-weight:700">
-                        <input type="text" class="jj-input edit-price" value="${p.price}">
+                    <div style="max-height:150px; overflow-y:auto">${variantHtml}</div>
+                    <div style="display:flex; gap:5px; margin-top:10px">
+                        <button class="jj-btn" style="flex:2" onclick="updateFullItem(this)">SALVAR</button>
+                        <button class="jj-btn" style="flex:1; background:#fff; color:#ff4d4d; border:1px solid #ffeded; box-shadow:none" onclick="deleteItem('${p.id}', this)"><i class="fas fa-trash"></i></button>
                     </div>
-                    ${variantHtml}
-                    <button class="jj-btn clickable" onclick="updateFullItem(this)">SALVAR ALTERAÇÕES</button>
-                    <button class="jj-btn clickable" style="background:#fff; color:#ff4d4d; border:2px solid #ffeded; margin-top:10px; box-shadow:none" onclick="deleteItem('${p.id}', this)">EXCLUIR</button>
                 `;
-                setTimeout(() => { try { JsBarcode(container.querySelector('.barcode-target'), p.id, { format: "CODE128", width: 1.5, height: 40, displayValue: false }); } catch(e) {} }, 100);
+                setTimeout(() => { try { JsBarcode(container.querySelector('.barcode-target'), p.id, { format: "CODE128", width: 2, height: 30, displayValue: false }); } catch(e) {} }, 100);
             }
         }
 
         // --- CRUD ---
         function saveNewItem(btn) {
-            const c = btn.closest('.expanded-view').querySelector('.content-scroll');
+            const c = btn.parentElement;
             const name = c.querySelector('.inp-name').value;
-            if(!name) return alert("Nome obrigatório");
+            if(!name) return;
             const ref = database.ref('produtos').push();
             ref.set({
                 id: ref.key, barcode: ref.key,
@@ -512,8 +462,8 @@
                 desc: c.querySelector('.inp-desc').value,
                 variants: {}
             }).then(() => {
-                btn.innerText = "SUCESSO!"; btn.style.background = "#4cd964";
-                setTimeout(() => { if(c.closest('#island-main')) setMainView('list'); else closeIsland(c.closest('.island-aux').id); }, 800);
+                btn.innerText = "SALVO!";
+                setTimeout(() => { if(c.closest('#island-main')) setMainView('list'); else closeWidget(c.closest('.island-aux').id); }, 800);
             });
         }
 
@@ -522,7 +472,7 @@
             const id = c.querySelector('.edit-id').value;
             const updates = { name: c.querySelector('.edit-name').value, price: c.querySelector('.edit-price').value };
             c.querySelectorAll('.stock-inp').forEach(inp => { database.ref(`produtos/${id}/variants/${inp.dataset.color}/stock`).set(inp.value); });
-            database.ref('produtos/'+id).update(updates).then(() => { btn.innerText = "SALVO!"; setTimeout(() => btn.innerText = "SALVAR ALTERAÇÕES", 1000); });
+            database.ref('produtos/'+id).update(updates).then(() => { btn.innerText = "OK"; setTimeout(() => btn.innerText = "SALVAR", 1000); });
         }
 
         function handleImgUpload(id, color, input) {
@@ -534,9 +484,9 @@
         }
 
         function deleteItem(id, btn) {
-            if(confirm("Apagar?")) database.ref('produtos/'+id).remove().then(() => {
+            if(confirm("Excluir?")) database.ref('produtos/'+id).remove().then(() => {
                 const island = btn.closest('.island-aux');
-                if(island) closeIsland(island.id);
+                if(island) closeWidget(island.id);
                 else setMainView('list');
             });
         }
@@ -544,7 +494,13 @@
         function getImg(p) {
             let c = p.colors ? p.colors.split(',')[0].trim() : "";
             let i = (p.variants && p.variants[c]) ? p.variants[c].img : "";
-            return (i && i.length > 5) ? i : "https://via.placeholder.com/150";
+            return (i && i.length > 5) ? i : "https://via.placeholder.com/100";
+        }
+        
+        function getColorHex(colorName) {
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = colorName;
+            return ctx.fillStyle == '#000000' && colorName.toLowerCase() !== 'black' ? '#ddd' : ctx.fillStyle;
         }
 
         // --- SCANNER ---
@@ -553,13 +509,13 @@
             document.getElementById('main-content').style.display = 'none'; document.getElementById('main-dock').style.display = 'none';
             document.getElementById('scanner-container').style.display = 'flex'; document.querySelector('.header-bar').style.display = 'none';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (txt) => {
                 stopScanner();
                 database.ref('produtos').once('value', snap => {
                     const data = snap.val();
                     let f = null;
                     if(data) Object.values(data).forEach(p => { if(p.id == txt || p.barcode == txt) f = p; });
-                    if(f) spawnIsland('edit', f); else alert("Não encontrado.");
+                    if(f) spawnWidget('edit', f); else alert("Produto não encontrado");
                 });
             });
         }
